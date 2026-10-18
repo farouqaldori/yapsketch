@@ -59,6 +59,13 @@ final class StatusPill {
         show(text, problem: false, for: 10)
     }
 
+    /// Done, with `button` (or none) in Copy's place.
+    func notice(_ text: String, button: String? = nil, action: (() -> Void)? = nil) {
+        fix = action
+        view.copy.title = button ?? ""
+        show(text, problem: false, for: 10)
+    }
+
     /// `button` only when there's something to do. Stays a little longer than `done`.
     func problem(_ text: String, button: String? = nil, action: (() -> Void)? = nil) {
         fix = action

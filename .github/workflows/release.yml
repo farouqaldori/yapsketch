@@ -44,10 +44,16 @@ jobs:
           xcrun notarytool store-credentials "$NOTARY_PROFILE" --keychain "$NOTARY_KEYCHAIN" \
             --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD"
 
+      # What's new is the tag's message: git tag -a v0.2.0 -m "- one point" -m "- another"
+      - name: Release notes
+        run: |
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          git for-each-ref "refs/tags/$GITHUB_REF_NAME" --format='%(contents)' > "$RUNNER_TEMP/notes.md"
+
       - name: Build, sign, notarize
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-        run: scripts/release.sh "${GITHUB_REF_NAME#v}"
+        run: scripts/release.sh "${GITHUB_REF_NAME#v}" "$RUNNER_TEMP/notes.md"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -63,7 +69,7 @@ jobs:
         run: |
           version="${GITHUB_REF_NAME#v}"
           out="build/release/$version"
-          gh release create "$GITHUB_REF_NAME" --draft --title "YapSketch $version" --generate-notes \
+          gh release create "$GITHUB_REF_NAME" --draft --title "YapSketch $version" --notes-file "$RUNNER_TEMP/notes.md" \
             "$out/YapSketch-$version.zip" "$out/YapSketch-$version.dmg" "$out/appcast.xml"
 
       - name: Remove the keychain

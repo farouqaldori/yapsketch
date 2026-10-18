@@ -5,7 +5,7 @@ import SwiftUI
 struct GeneralPane: View {
     @AppStorage("copyWhenDone") private var copyWhenDone = true
     @AppStorage("pasteWhenDone") private var pasteWhenDone = false
-    @State private var checksForUpdates = Updates.shared.automaticallyChecks
+    @State private var updatesByItself = Updates.shared.updatesByItself
     @State private var opensAtLogin = LoginItem.isOn
     /// What macOS does with 🌐 too, when dictation is on fn.
     @State private var globeKey: String?
@@ -42,11 +42,20 @@ struct GeneralPane: View {
             }
             if Updates.isEnabled {
                 BrandSection("Updates") {
-                    BrandRow("Check for updates automatically", isOn: $checksForUpdates)
-                        .onChange(of: checksForUpdates) { Updates.shared.automaticallyChecks = checksForUpdates }
+                    BrandRow("Update by itself", subtitle: "Installs new versions when you quit YapSketch.", isOn: $updatesByItself)
+                        .onChange(of: updatesByItself) { Updates.shared.updatesByItself = updatesByItself }
+                    BrandRow(Self.version) {
+                        HStack(spacing: 14) {
+                            if let notes = Updates.shared.currentNotes {
+                                Button("What's new") { UpdateWindow.shared.show(installed: notes) }.buttonStyle(.link).font(.ui(13))
+                            }
+                            Button("Check now") { Updates.shared.checkForUpdates() }.buttonStyle(.paper)
+                        }
+                    }
                 }
+            } else {
+                Text(Self.version).font(.ui(12)).foregroundStyle(.faint).padding(.leading, 2)
             }
-            Text(Self.version).font(.ui(12)).foregroundStyle(.faint).padding(.leading, 2)
         }
         .onAppear(perform: refreshGlobeKey)
         .onReceive(NotificationCenter.default.publisher(for: .yapSketchShortcutsChanged)) { _ in refreshGlobeKey() }

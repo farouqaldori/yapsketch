@@ -3,7 +3,10 @@
 # notarized and stapled; a .zip (what Sparkle downloads) and a .dmg (for the website);
 # and appcast.xml, the feed the app reads. Publishes nothing: it prints the gh command.
 #
-#   NOTARY_PROFILE=yapsketch scripts/release.sh 0.2.0
+#   NOTARY_PROFILE=yapsketch scripts/release.sh 0.2.0 notes.md
+#
+# notes.md: what's new, one point per line ("- " in front is fine). The app shows them when
+# it offers the update, and they're the GitHub release's description.
 #
 # NOTARY_PROFILE      notarytool keychain profile (xcrun notarytool store-credentials)
 # NOTARY_KEYCHAIN     the keychain holding it, if not the default one (CI)
@@ -14,8 +17,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 VERSION="${1:-}"
-if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-    echo "usage: scripts/release.sh <version>, e.g. 0.2.0" >&2
+NOTES="${2:-}"
+if [[ ! "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ || ! -s "$NOTES" ]]; then
+    echo "usage: scripts/release.sh <version> <notes.md>, e.g. 0.2.0 notes.md" >&2
     exit 1
 fi
 # Sparkle compares CFBundleVersion: one number that grows with the version (1.2.3 → 10203).
@@ -111,7 +115,7 @@ ITEM="        <item>
             <sparkle:version>$BUILD</sparkle:version>
             <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>15.0</sparkle:minimumSystemVersion>
-            <sparkle:fullReleaseNotesLink>https://github.com/$REPO/releases/tag/v$VERSION</sparkle:fullReleaseNotesLink>
+            <description><![CDATA[$(sed 's/]]>/]]]]><![CDATA[>/g' "$NOTES")]]></description>
             <enclosure url=\"https://github.com/$REPO/releases/download/v$VERSION/YapSketch-$VERSION.zip\" type=\"application/octet-stream\" $ENCLOSURE/>
         </item>"
 python3 -I - "$OUT/appcast.xml" "$OUT/previous.xml" "$BUILD" "$ITEM" <<'EOF'
@@ -136,5 +140,5 @@ echo "Release $VERSION (build $BUILD) is in $OUT:"
 ls -1 "$OUT"
 echo
 echo "Commit the version bump in Resources/Info.plist, tag v$VERSION, then publish with:"
-echo "  gh release create v$VERSION --repo $REPO --title \"YapSketch $VERSION\" --generate-notes \\"
+echo "  gh release create v$VERSION --repo $REPO --title \"YapSketch $VERSION\" --notes-file $NOTES \\"
 echo "    $ZIP $DMG $OUT/appcast.xml"

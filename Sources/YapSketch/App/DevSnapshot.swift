@@ -60,6 +60,41 @@ enum DevSnapshot {
     }
 
     /// `--snapshot-pills <dir>`: the toolbar and pills in each state, over a desktop-ish gradient.
+    /// `--snapshot-update <dir>`: the update window offering an update, downloading it, and
+    /// showing what's new after.
+    @MainActor static func update(to dir: URL) {
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let release = Updates.Release(
+            version: "0.2.0",
+            notes: [
+                "A recording that can't start tells you why, with a button that fixes it.",
+                "Reports always finish. If a provider is down, you still get a quick one to paste.",
+                "If YapSketch quits mid-report, it finishes the report next time it opens.",
+                "Dictation is never lost. If it can't be turned into text, it waits in History with Try Again.",
+            ], date: Date())
+        func capture(_ name: String) {
+            guard let w = UpdateWindow.shared.debugWindow else { return }
+            w.orderFrontRegardless()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.8))
+            let shot = Process()
+            shot.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
+            shot.arguments = ["-l", "\(w.windowNumber)", "-o", "-x", dir.appendingPathComponent("\(name).png").path]
+            try? shot.run()
+            shot.waitUntilExit()
+        }
+        Updates.shared.debugSet(release, phase: .waiting)
+        UpdateWindow.shared.show()
+        capture("update-ready")
+        Updates.shared.debugSet(release, phase: .downloading(0.59))
+        capture("update-downloading")
+        Updates.shared.debugSet(release, phase: .installing)
+        capture("update-reopening")
+        Updates.shared.debugSet(nil, phase: .waiting)
+        UpdateWindow.shared.show(installed: release)
+        capture("update-whats-new")
+        print(dir.path)
+    }
+
     @MainActor static func pills(to dir: URL) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         func shoot(_ panel: NSPanel, _ name: String) {

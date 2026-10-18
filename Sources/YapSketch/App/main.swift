@@ -71,6 +71,11 @@ if let i = args.firstIndex(of: "--snapshot-onboarding"), i + 1 < args.count {
     MainActor.assumeIsolated { DevSnapshot.onboarding(to: URL(fileURLWithPath: args[i + 1])) }
     exit(0)
 }
+if let i = args.firstIndex(of: "--snapshot-update"), i + 1 < args.count {
+    _ = NSApplication.shared
+    MainActor.assumeIsolated { DevSnapshot.update(to: URL(fileURLWithPath: args[i + 1])) }
+    exit(0)
+}
 if let i = args.firstIndex(of: "--snapshot-pills"), i + 1 < args.count {
     _ = NSApplication.shared
     MainActor.assumeIsolated { DevSnapshot.pills(to: URL(fileURLWithPath: args[i + 1])) }

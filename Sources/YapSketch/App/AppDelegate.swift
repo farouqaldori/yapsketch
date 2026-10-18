@@ -103,6 +103,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             Onboarding.shared.onStartRecording = { [weak self] in self?.toggleRecording() }
             Onboarding.shared.showIfNeeded()
             Updates.shared.isBusy = { [weak self] in self.map { $0.state != .idle } ?? false }
+            Updates.shared.onChange = { [weak self] in self?.refreshStatus() }
+            Updates.shared.onNotice = { [weak self] in self?.showUpdateNotice($0) }
             Updates.shared.start()
         }
         Task { await finishUnfinished() }
@@ -848,6 +850,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             button.image = NSImage(systemSymbolName: "hourglass", accessibilityDescription: "Processing")
             button.title = ""
         }
+        // A waiting update: a coral dot on the icon until it's opened.
+        let dot = MainActor.assumeIsolated { Updates.shared.available != nil } && (state == .idle || state == .starting)
+        if dot, updateDot.superview !== button { button.addSubview(updateDot) }
+        updateDot.isHidden = !dot
+        let b = button.bounds
+        updateDot.frame = CGRect(x: b.maxX - 9, y: button.isFlipped ? 3 : b.maxY - 10, width: 7, height: 7)
+    }
+
+    private lazy var updateDot: NSView = {
+        let v = NSView()
+        v.wantsLayer = true
+        v.layer?.backgroundColor = Brand.coral.cgColor
+        v.layer?.cornerRadius = 3.5
+        return v
+    }()
+
+    private func showUpdateNotice(_ notice: Updates.Notice) {
+        switch notice {
+        case .upToDate(let version):
+            pill.notice("You have the latest YapSketch (\(version))")
+        case .failed:
+            pill.problem("Couldn't update YapSketch. Try again later.", button: "Try Again") {
+                MainActor.assumeIsolated { Updates.shared.checkForUpdates() }
+            }
+        case .updated(let release):
+            pill.notice("Updated to YapSketch \(release.version)", button: "What's new") {
+                MainActor.assumeIsolated { UpdateWindow.shared.show(installed: release) }
+            }
+        }
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -871,6 +902,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case .processing:
             add("Processing…", nil, image: "hourglass")
         case .idle, .starting:
+            if let update = MainActor.assumeIsolated({ Updates.shared.available }) {
+                let mi = NSMenuItem(title: "", action: #selector(openUpdate), keyEquivalent: "")
+                mi.target = self
+                mi.attributedTitle = NSAttributedString(
+                    string: "YapSketch \(update.version) is ready", attributes: [.font: NSFont.boldSystemFont(ofSize: NSFont.menuFont(ofSize: 0).pointSize)])
+                mi.image = Self.updateDotImage
+                menu.addItem(mi)
+                menu.addItem(.separator())
+            }
             add(
                 "Start Recording", state == .idle ? #selector(toggleRecording) : nil, key: rec.menuKey, mods: rec.menuModifiers,
                 image: "record.circle")
@@ -945,6 +985,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func openHistory() { MainActor.assumeIsolated { SettingsWindow.shared.show(.history) } }
     @objc private func starOnGitHub() { Links.starOnGitHub() }
     @objc private func checkForUpdates() { MainActor.assumeIsolated { Updates.shared.checkForUpdates() } }
+    @objc private func openUpdate() { MainActor.assumeIsolated { UpdateWindow.shared.show() } }
+
+    private static let updateDotImage = NSImage(size: CGSize(width: 16, height: 16), flipped: false) { r in
+        Brand.coral.setFill()
+        NSBezierPath(ovalIn: CGRect(x: r.midX - 4, y: r.midY - 4, width: 8, height: 8)).fill()
+        return true
+    }
 
     @objc private func copyRecording(_ sender: NSMenuItem) {
         guard let dir = sender.representedObject as? URL else { return }
