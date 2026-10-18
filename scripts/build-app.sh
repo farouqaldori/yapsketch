@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Builds YapSketch.app into ./build and signs it.
 #
-# macOS ties privacy permissions to the code signature, and an ad-hoc one changes on every
-# build, so a stable "Apple Development" identity is preferred when one exists.
+# macOS ties privacy permissions and keychain access to the code signature, and an ad-hoc one
+# changes on every build. So the Developer ID that releases are signed with is preferred: dev
+# builds and installed releases are then the same app to macOS. Else an Apple Development one.
 # Override with SIGN_IDENTITY="..." (or "-" for ad-hoc). HARDENED=1 signs for distribution
 # and FEED_URL turns on Sparkle updates (release.sh sets both).
 set -euo pipefail
@@ -41,7 +42,9 @@ else
 fi
 
 if [[ -z "${SIGN_IDENTITY:-}" ]]; then
-    SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | grep -m1 'Apple Development' | awk '{print $2}' || true)"
+    IDENTITIES="$(security find-identity -v -p codesigning 2>/dev/null || true)"
+    SIGN_IDENTITY="$(grep -m1 'Developer ID Application' <<<"$IDENTITIES" | awk '{print $2}' || true)"
+    [[ -n "$SIGN_IDENTITY" ]] || SIGN_IDENTITY="$(grep -m1 'Apple Development' <<<"$IDENTITIES" | awk '{print $2}' || true)"
     SIGN_IDENTITY="${SIGN_IDENTITY:--}"
 fi
 
