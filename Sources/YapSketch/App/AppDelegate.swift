@@ -546,11 +546,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if await Paster.deliver(prompt, mode: copyWhenDone ? .pasteAndKeep : .paste, submit: false) {
                 pill.done("Pasted into \(NSWorkspace.shared.frontmostApplication?.localizedName ?? "the app in front")" + note)
             } else {
-                pill.done("Copied to clipboard" + note)
+                pill.notice("Copied to clipboard" + note)
             }
         } else {
             if copyWhenDone { copyLastPrompt() }
-            pill.done((copyWhenDone ? "Copied to clipboard" : "Report ready") + note)
+            // Copy only when it isn't on the clipboard already.
+            if copyWhenDone { pill.notice("Copied to clipboard" + note) } else { pill.done("Report ready" + note) }
         }
         Sounds.play(.done)
         Storage.cleanUp(keeping: session.dir)
