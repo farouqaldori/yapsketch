@@ -247,11 +247,28 @@ final class Onboarding: ObservableObject {
 
     /// Screen Recording only applies to a fresh process.
     func reopen() {
+        reopenAfterQuit()
+        NSApp.terminate(nil)
+    }
+
+    private var reopening = false
+
+    /// Asked to quit while System Settings is open for a permission: macOS's own Quit & Reopen,
+    /// which often doesn't reopen a menu-bar app. So YapSketch reopens itself.
+    var quitIsForPermission: Bool {
+        guard case .permission = step, openedSettings, window?.isVisible == true else { return false }
+        return true
+    }
+
+    /// Opens YapSketch again once this process has exited (if macOS already did, it's just
+    /// brought forward).
+    func reopenAfterQuit() {
+        guard !reopening else { return }
+        reopening = true
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/sh")
         p.arguments = ["-c", "while kill -0 \(getpid()) 2>/dev/null; do sleep 0.2; done; /usr/bin/open \"$0\"", Bundle.main.bundlePath]
         try? p.run()
-        NSApp.terminate(nil)
     }
 
     func startRecording() {

@@ -643,6 +643,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         switch state {
         case .idle:
+            MainActor.assumeIsolated {
+                if Onboarding.shared.quitIsForPermission { Onboarding.shared.reopenAfterQuit() }
+            }
             return .terminateNow
         case .recording:
             terminationPending = true
