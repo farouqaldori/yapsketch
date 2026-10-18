@@ -6,7 +6,6 @@ struct DictationPane: View {
     @AppStorage("pasteSubmit") private var submit = false
     @AppStorage("removeFillers") private var removeFillers = true
     @AppStorage("customWords") private var customWords = ""
-    @AppStorage("sounds") private var sounds = true
     @AppStorage("showWords") private var showWords = true
     @State private var trusted = AXIsProcessTrusted()
 
@@ -50,7 +49,6 @@ struct DictationPane: View {
             }
             BrandSection {
                 BrandRow("Show words as you talk", subtitle: "While dictating and in the recording toolbar", isOn: $showWords)
-                BrandRow("Sounds", subtitle: "When the microphone starts and stops, for dictation and recordings", isOn: $sounds)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in

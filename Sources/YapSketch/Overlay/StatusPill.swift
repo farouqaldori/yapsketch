@@ -68,6 +68,7 @@ final class StatusPill {
 
     /// `button` only when there's something to do. Stays a little longer than `done`.
     func problem(_ text: String, button: String? = nil, action: (() -> Void)? = nil) {
+        MainActor.assumeIsolated { Sounds.play(.error) }
         fix = action
         view.copy.title = button ?? ""
         show(text, problem: true, for: 15)

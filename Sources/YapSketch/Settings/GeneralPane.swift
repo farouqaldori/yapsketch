@@ -5,6 +5,7 @@ import SwiftUI
 struct GeneralPane: View {
     @AppStorage("copyWhenDone") private var copyWhenDone = true
     @AppStorage("pasteWhenDone") private var pasteWhenDone = false
+    @AppStorage("soundPack") private var soundPack = Sounds.Pack.click.rawValue
     @State private var updatesByItself = Updates.shared.updatesByItself
     @State private var opensAtLogin = LoginItem.isOn
     /// What macOS does with 🌐 too, when dictation is on fn.
@@ -39,6 +40,17 @@ struct GeneralPane: View {
             BrandSection("When a recording is done") {
                 BrandRow("Copy the instructions for your agent", isOn: $copyWhenDone)
                 BrandRow("Paste them into the app in front", subtitle: "Works when your agent's prompt box is active.", isOn: $pasteWhenDone)
+            }
+            BrandSection {
+                BrandRow("Sounds", subtitle: "When you record, stop, get a report, dictate, or something goes wrong") {
+                    Picker("Sounds", selection: $soundPack) {
+                        Text("Off").tag("off")
+                        Divider()
+                        ForEach(Sounds.Pack.allCases) { p in Text(p.name).tag(p.rawValue) }
+                    }
+                    .labelsHidden().fixedSize()
+                    .onChange(of: soundPack) { if let p = Sounds.Pack(rawValue: soundPack) { Sounds.preview(p) } }
+                }
             }
             if Updates.isEnabled {
                 BrandSection("Updates") {

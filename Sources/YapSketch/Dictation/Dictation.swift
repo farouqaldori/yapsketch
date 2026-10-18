@@ -128,7 +128,7 @@ final class Dictation {
         if !heard {
             // The start sound once the microphone is actually live, so no word is lost.
             heard = true
-            Sounds.play(.start)
+            Sounds.play(.dictateOn)
         }
         samples += chunk
         if state == .listening { pill.level(level) }
@@ -181,7 +181,7 @@ final class Dictation {
         state = .working
         guard Double(samples.count) / 16_000 >= 0.3 else {
             stopListening()
-            Sounds.play(.stop)
+            Sounds.play(.dictateOff)
             stopLive()
             state = .idle
             pill.done("Too short to transcribe", ok: false)
@@ -194,7 +194,7 @@ final class Dictation {
     private func transcribe() {
         stopListening()
         // After the tail, so the microphone doesn't hear it.
-        Sounds.play(.stop)
+        Sounds.play(.dictateOff)
         let duration = Double(samples.count) / 16_000
         let audio = DictationHistory.newAudioURL()
         let heardSamples = samples
@@ -267,61 +267,6 @@ final class Dictation {
 
 enum LiveWords {
     static var shown: Bool { UserDefaults.standard.object(forKey: "showWords") as? Bool ?? true }
-}
-
-enum Sounds {
-    enum Kind { case start, stop, done }
-
-    static var on: Bool { UserDefaults.standard.object(forKey: "sounds") as? Bool ?? true }
-
-    /// Two soft notes, rising to start and falling to stop. The system's alert sounds read as errors.
-    private static let start = chime([(784, 0), (1175, 0.07)])  // G5, then D6
-    private static let stop = chime([(1175, 0), (784, 0.07)])
-    /// A recording's instructions are ready: three notes up.
-    private static let done = chime([(784, 0), (988, 0.06), (1175, 0.12)])
-
-    @MainActor
-    static func play(_ kind: Kind) {
-        let sound = switch kind {
-        case .start: start
-        case .stop: stop
-        case .done: done
-        }
-        guard on, let s = sound?.copy() as? NSSound else { return }
-        s.volume = 0.5
-        s.play()
-    }
-
-    /// Bell-like notes starting at the given offsets, as a WAV.
-    private static func chime(_ notes: [(hz: Double, at: Double)]) -> NSSound? {
-        let rate = 44_100.0
-        let length = (notes.map(\.at).max() ?? 0) + 0.32
-        var samples = [Float](repeating: 0, count: Int(rate * length))
-        for (hz, at) in notes {
-            for i in Int(at * rate)..<samples.count {
-                let t = Double(i) / rate - at
-                let envelope = min(1, t / 0.006) * exp(-t * 11)
-                samples[i] += Float(envelope * (sin(2 * .pi * hz * t) + 0.18 * sin(4 * .pi * hz * t)) * 0.32)
-            }
-        }
-        var wav = Data()
-        func put<T>(_ v: T) { withUnsafeBytes(of: v) { wav.append(contentsOf: $0) } }
-        let pcm = samples.map { Int16(max(-1, min(1, $0)) * Float(Int16.max)) }
-        wav.append(contentsOf: Array("RIFF".utf8))
-        put(UInt32(36 + pcm.count * 2).littleEndian)
-        wav.append(contentsOf: Array("WAVEfmt ".utf8))
-        put(UInt32(16).littleEndian)
-        put(UInt16(1).littleEndian)
-        put(UInt16(1).littleEndian)
-        put(UInt32(rate).littleEndian)
-        put(UInt32(rate * 2).littleEndian)
-        put(UInt16(2).littleEndian)
-        put(UInt16(16).littleEndian)
-        wav.append(contentsOf: Array("data".utf8))
-        put(UInt32(pcm.count * 2).littleEndian)
-        pcm.forEach { put($0.littleEndian) }
-        return NSSound(data: wav)
-    }
 }
 
 /// Past dictations, kept as long as recordings are.
