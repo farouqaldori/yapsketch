@@ -18,6 +18,8 @@ final class DictationPill {
     var onCancel: (() -> Void)?
 
     private static let listeningSize = CGSize(width: 420, height: 44)
+    /// Without the words: just the dot, the level, the time and ✕.
+    private static let compactSize = CGSize(width: 160, height: 44)
     /// As tall as the recording's pill, and as far up the screen (see StatusPill).
     private static let height: CGFloat = 44
 
@@ -152,12 +154,12 @@ final class DictationPill {
         time.isHidden = !listening
         cancel.isHidden = !listening
         liveDot.isHidden = !listening
-        label.isHidden = phase == .working
+        label.isHidden = phase == .working || (listening && !LiveWords.shown)
         status.isHidden = phase != .done
         let textW = ceil(label.intrinsicContentSize.width)
         let size: CGSize =
             switch phase {
-            case .listening: Self.listeningSize
+            case .listening: LiveWords.shown ? Self.listeningSize : Self.compactSize
             case .working: CGSize(width: 60, height: Self.height)
             case .done: CGSize(width: min(360, 36 + textW + 18), height: Self.height)
             }

@@ -265,7 +265,7 @@ final class Dictation {
 }
 
 enum LiveWords {
-    static var shown: Bool { UserDefaults.standard.object(forKey: "showWords") as? Bool ?? true }
+    static var shown: Bool { UserDefaults.standard.object(forKey: "showWords") == nil || UserDefaults.standard.bool(forKey: "showWords") }
 }
 
 /// Past dictations, kept as long as recordings are.

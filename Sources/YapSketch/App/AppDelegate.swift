@@ -60,6 +60,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: Lifecycle
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Ink fades unless you turn that off.
+        defaults.register(defaults: ["temporaryInk": true])
         CLI.install()
         installEditMenu()
         Storage.cleanUp()

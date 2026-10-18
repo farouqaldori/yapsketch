@@ -16,7 +16,7 @@ struct RecordingPane: View {
     @AppStorage("recordWindow") private var recordWindow = false
     @AppStorage("systemAudio") private var systemAudio = false
     @AppStorage("logKeystrokes") private var logKeystrokes = true
-    @AppStorage("temporaryInk") private var temporaryInk = false
+    @AppStorage("temporaryInk") private var temporaryInk = true
     @AppStorage("inkSize") private var inkSize = 0.7
     @AppStorage("keepDays") private var keepDays = 0
     @State private var used: String?
