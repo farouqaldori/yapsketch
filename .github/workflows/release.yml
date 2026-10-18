@@ -1,0 +1,71 @@
+name: Release
+
+# A v* tag builds, signs, notarizes and drafts a GitHub release with the zip, the dmg
+# and appcast.xml. Publishing the draft is what makes it the update.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-26
+    env:
+      NOTARY_PROFILE: yapsketch
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: asr-helper
+          shared-key: asr-helper
+
+      - name: Keychain with the Developer ID certificate and notary credentials
+        env:
+          DEVELOPER_ID_P12: ${{ secrets.DEVELOPER_ID_P12 }}
+          DEVELOPER_ID_P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          NOTARY_KEYCHAIN="$RUNNER_TEMP/release.keychain-db"
+          echo "NOTARY_KEYCHAIN=$NOTARY_KEYCHAIN" >> "$GITHUB_ENV"
+          password="$(uuidgen)"
+          security create-keychain -p "$password" "$NOTARY_KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$NOTARY_KEYCHAIN"
+          security unlock-keychain -p "$password" "$NOTARY_KEYCHAIN"
+          echo "$DEVELOPER_ID_P12" | base64 --decode > "$RUNNER_TEMP/developer-id.p12"
+          security import "$RUNNER_TEMP/developer-id.p12" -k "$NOTARY_KEYCHAIN" -P "$DEVELOPER_ID_P12_PASSWORD" \
+            -f pkcs12 -T /usr/bin/codesign
+          rm "$RUNNER_TEMP/developer-id.p12"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$NOTARY_KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$NOTARY_KEYCHAIN" "$HOME/Library/Keychains/login.keychain-db"
+          xcrun notarytool store-credentials "$NOTARY_PROFILE" --keychain "$NOTARY_KEYCHAIN" \
+            --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_PASSWORD"
+
+      - name: Build, sign, notarize
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: scripts/release.sh "${GITHUB_REF_NAME#v}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: YapSketch-${{ github.ref_name }}
+          path: |
+            build/release/*/YapSketch-*.zip
+            build/release/*/YapSketch-*.dmg
+            build/release/*/appcast.xml
+
+      - name: Draft the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          out="build/release/$version"
+          gh release create "$GITHUB_REF_NAME" --draft --title "YapSketch $version" --generate-notes \
+            "$out/YapSketch-$version.zip" "$out/YapSketch-$version.dmg" "$out/appcast.xml"
+
+      - name: Remove the keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/release.keychain-db" || true

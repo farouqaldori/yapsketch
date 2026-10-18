@@ -1,0 +1,446 @@
+import AVFoundation
+import AppKit
+import Carbon
+
+/// Captures dictation and delivers the cleaned transcript to the frontmost app.
+@MainActor
+final class Dictation {
+    private enum State { case idle, listening, working }
+
+    private let parakeet: ParakeetLive
+    private let hotkeys: Hotkeys
+    private let pill = DictationPill()
+    private var engine: AVAudioEngine?
+    private var state = State.idle
+    private var pressedAt = Date()
+    /// Tapped rather than held: keeps listening until the next tap.
+    private var locked = false
+    private var escape: UInt32?
+    /// 16 kHz mono, everything heard.
+    private var samples: [Float] = []
+    private var segments: [TranscriptSegment] = []
+    private var live = false
+    private var heard = false
+    private var saved: (partial: ((String) -> Void)?, segment: ((TranscriptSegment) -> Void)?)
+    /// Turning what was heard into text (often waiting on the network); Esc cancels it.
+    private var work: Task<Void, Never>?
+
+    var isBusy: Bool { state != .idle }
+    /// The last word often trails past the key coming up: keep listening this long after.
+    private static let tail = 0.35
+
+    init(parakeet: ParakeetLive, hotkeys: Hotkeys) {
+        self.parakeet = parakeet
+        self.hotkeys = hotkeys
+        pill.onCancel = { [weak self] in self?.cancel() }
+    }
+
+    // MARK: The shortcut
+
+    func pressed() {
+        switch state {
+        case .idle: start()
+        case .listening: if locked { finish() }
+        case .working: break
+        }
+    }
+
+    /// Held for a moment: push-to-talk, done on release. A quick tap: stays on.
+    func released() {
+        guard state == .listening, !locked else { return }
+        if Date().timeIntervalSince(pressedAt) >= 0.3 { finish() } else { locked = true }
+    }
+
+    // MARK: Listening
+
+    private func start() {
+        guard AVCaptureDevice.authorizationStatus(for: .audio) == .authorized else {
+            AVCaptureDevice.requestAccess(for: .audio) { _ in }
+            pill.listening()
+            pill.done("Needs microphone access", ok: false)
+            return
+        }
+        samples = []
+        segments = []
+        heard = false
+        locked = false
+        pressedAt = Date()
+        // A streaming model on this Mac transcribes as you talk.
+        live = CloudSpeech.selected() == nil && parakeet.isAvailable
+        if live {
+            saved = (parakeet.onPartial, parakeet.onSegment)
+            parakeet.onPartial = { [weak self] t in self.map { $0.pill.text(($0.segments.map(\.text) + [t]).joined(separator: " ")) } }
+            parakeet.onSegment = { [weak self] seg in self?.segments.append(seg) }
+            parakeet.start(clock: { 0 })
+        }
+
+        let engine = AVAudioEngine()
+        let input = engine.inputNode
+        let inFormat = input.outputFormat(forBus: 0)
+        guard inFormat.sampleRate > 0,
+            let outFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false),
+            let converter = AVAudioConverter(from: inFormat, to: outFormat)
+        else {
+            stopLive()
+            pill.listening()
+            pill.done("No microphone", ok: false)
+            return
+        }
+        input.installTap(onBus: 0, bufferSize: 1024, format: inFormat) { [weak self] buffer, _ in
+            let capacity = AVAudioFrameCount(Double(buffer.frameLength) * 16_000 / inFormat.sampleRate) + 32
+            guard let out = AVAudioPCMBuffer(pcmFormat: outFormat, frameCapacity: capacity) else { return }
+            var given = false
+            converter.convert(to: out, error: nil) { _, status in
+                if given {
+                    status.pointee = .noDataNow
+                    return nil
+                }
+                given = true
+                status.pointee = .haveData
+                return buffer
+            }
+            guard let ch = out.floatChannelData, out.frameLength > 0 else { return }
+            let chunk = Array(UnsafeBufferPointer(start: ch[0], count: Int(out.frameLength)))
+            let rms = (chunk.reduce(0) { $0 + $1 * $1 } / Float(chunk.count)).squareRoot()
+            // In decibels, like the recording toolbar's meter: speech moves the bars, not just shouting.
+            let level = max(0, min(1, (20 * log10(max(rms, 1e-6)) + 50) / 40))
+            DispatchQueue.main.async { self?.received(chunk, level: level) }
+        }
+        do {
+            try engine.start()
+        } catch {
+            input.removeTap(onBus: 0)
+            stopLive()
+            pill.listening()
+            pill.done("Microphone unavailable", ok: false)
+            Log.info("dictation: audio engine failed: \(error.localizedDescription)")
+            return
+        }
+        self.engine = engine
+        state = .listening
+        pill.listening()
+        escape = hotkeys.register(Hotkeys.Combo(keyCode: kVK_Escape, modifiers: 0, display: "⎋")) { [weak self] in self?.cancel() }
+        Log.info(
+            "dictation: listening (\(live ? "live" : CloudSpeech.selected().map { "\($0.name) via \($0.providerName)" } ?? "on this Mac"))"
+        )
+    }
+
+    private func received(_ chunk: [Float], level: Float) {
+        // Still listening through the tail after the key comes up.
+        guard engine != nil else { return }
+        if !heard {
+            // The start sound once the microphone is actually live, so no word is lost.
+            heard = true
+            Sounds.play(.start)
+        }
+        samples += chunk
+        if state == .listening { pill.level(level) }
+        if live { parakeet.append(samples: chunk) }
+    }
+
+    private func stopListening() {
+        engine?.inputNode.removeTap(onBus: 0)
+        engine?.stop()
+        engine = nil
+        if let escape { hotkeys.unregister(escape) }
+        escape = nil
+    }
+
+    private func stopLive() {
+        guard live else { return }
+        live = false
+        Task {
+            await parakeet.finish()
+            parakeet.onPartial = saved.partial
+            parakeet.onSegment = saved.segment
+        }
+    }
+
+    func cancel() {
+        switch state {
+        case .listening:
+            stopListening()
+            stopLive()
+            state = .idle
+            pill.hide()
+            Log.info("dictation: cancelled")
+        case .working:
+            // Stop waiting (on a provider, usually): nothing is pasted.
+            work?.cancel()
+            work = nil
+            if let escape { hotkeys.unregister(escape) }
+            escape = nil
+            state = .idle
+            pill.hide()
+            Log.info("dictation: cancelled while transcribing")
+        case .idle:
+            break
+        }
+    }
+
+    // MARK: Done talking
+
+    private func finish() {
+        guard state == .listening else { return }
+        state = .working
+        guard Double(samples.count) / 16_000 >= 0.3 else {
+            stopListening()
+            Sounds.play(.stop)
+            stopLive()
+            state = .idle
+            pill.done("Too short to transcribe", ok: false)
+            return
+        }
+        pill.working()
+        DispatchQueue.main.asyncAfter(deadline: .now() + Self.tail) { [weak self] in self?.transcribe() }
+    }
+
+    private func transcribe() {
+        stopListening()
+        // After the tail, so the microphone doesn't hear it.
+        Sounds.play(.stop)
+        let duration = Double(samples.count) / 16_000
+        let audio = DictationHistory.newAudioURL()
+        let heardSamples = samples
+        let wasLive = live
+        // Esc still cancels while it's turned into text.
+        escape = hotkeys.register(Hotkeys.Combo(keyCode: kVK_Escape, modifiers: 0, display: "⎋")) { [weak self] in self?.cancel() }
+        work = Task {
+            DictationHistory.writeWAV(heardSamples, to: audio)
+            var heard = (text: "", model: ModelStore.current()?.name ?? "on this Mac", trouble: String?.none)
+            if wasLive {
+                await parakeet.finish()
+                parakeet.onPartial = saved.partial
+                parakeet.onSegment = saved.segment
+                live = false
+                heard.text = segments.map(\.text).joined(separator: " ")
+            }
+            if heard.text.isEmpty { heard = await Self.words(in: audio, duration: duration) }
+            let raw = heard.text.trimmingCharacters(in: .whitespacesAndNewlines)
+            var final = TextCleanup.apply(raw)
+            if TextCleanup.aiProvider != nil, !final.isEmpty, !Task.isCancelled {
+                let plain = final
+                final = await Deadline.run(12) { await TextCleanup.aiClean(plain) } ?? plain
+            }
+            guard !Task.isCancelled else {
+                try? FileManager.default.removeItem(at: audio)
+                return
+            }
+            if let escape { hotkeys.unregister(escape) }
+            escape = nil
+            work = nil
+            guard !final.isEmpty else {
+                state = .idle
+                if let trouble = heard.trouble {
+                    // The provider failed and nothing on this Mac could stand in: keep it to try again.
+                    DictationHistory.add(text: "", raw: "", model: heard.model, duration: duration, audio: audio, failure: trouble)
+                    pill.done("\(trouble). Saved in History", ok: false)
+                    Log.info("dictation: kept for later (\(trouble))")
+                } else {
+                    pill.done("Nothing heard", ok: false)
+                    try? FileManager.default.removeItem(at: audio)
+                }
+                return
+            }
+            await Paster.deliver(final)
+            let mode = Paster.mode
+            let app = NSWorkspace.shared.frontmostApplication?.localizedName
+            let done = mode == .copy || !AXIsProcessTrusted() ? "Copied" : app.map { "Pasted into \($0)" } ?? "Pasted"
+            pill.done(done + (heard.trouble.map { " · \($0)" } ?? ""))
+            DictationHistory.add(text: final, raw: raw, model: heard.model, duration: duration, audio: audio)
+            Log.info(String(format: "dictation: %d words in %.1fs of speech (%@)", final.split(separator: " ").count, duration, heard.model))
+            state = .idle
+        }
+    }
+
+    /// The words in a dictation's audio: the chosen cloud model's (given a little while), else
+    /// this Mac's; which one heard them; and what went wrong with the cloud, if it did.
+    static func words(in audio: URL, duration: Double) async -> (text: String, model: String, trouble: String?) {
+        var trouble: String?
+        if let cloud = CloudSpeech.selected() {
+            let since = Date()
+            if let segments = await CloudSpeech.transcribe(audio: audio, model: cloud, deadline: min(60, 15 + duration * 0.5)) {
+                let text = segments.map(\.text).joined(separator: " ")
+                if !text.trimmingCharacters(in: .whitespaces).isEmpty { return (text, "\(cloud.name) via \(cloud.providerName)", nil) }
+            } else {
+                trouble = (ProviderHTTP.trouble(for: cloud.providerID, since: since) ?? .offline).sentence(cloud.providerName)
+            }
+        }
+        let local = ModelStore.current()?.name ?? "on this Mac"
+        if let p = await ParakeetOffline.transcribe(audio: audio) {
+            let text = p.segments.map(\.text).joined(separator: " ")
+            if !text.trimmingCharacters(in: .whitespaces).isEmpty { return (text, local, trouble) }
+        }
+        return ("", CloudSpeech.selected().map { "\($0.name) via \($0.providerName)" } ?? local, trouble)
+    }
+}
+
+/// The words as they're heard, in the dictation pill and the recording toolbar (a setting:
+/// they can be distracting).
+enum LiveWords {
+    static var shown: Bool { UserDefaults.standard.object(forKey: "showWords") as? Bool ?? true }
+}
+
+/// Start and stop sounds, for dictation and recordings (a setting).
+enum Sounds {
+    enum Kind { case start, stop, done }
+
+    static var on: Bool { UserDefaults.standard.object(forKey: "sounds") as? Bool ?? true }
+
+    /// Two soft notes: rising to start listening, falling when it's done. (The system's alert
+    /// sounds read as errors.)
+    private static let start = chime([(784, 0), (1175, 0.07)])  // G5, then D6
+    private static let stop = chime([(1175, 0), (784, 0.07)])
+    /// A recording's instructions are ready: three notes up.
+    private static let done = chime([(784, 0), (988, 0.06), (1175, 0.12)])
+
+    @MainActor
+    static func play(_ kind: Kind) {
+        let sound = switch kind {
+        case .start: start
+        case .stop: stop
+        case .done: done
+        }
+        guard on, let s = sound?.copy() as? NSSound else { return }
+        s.volume = 0.5
+        s.play()
+    }
+
+    /// Bell-like notes (a sine with a soft attack, a gentle overtone and an exponential fade)
+    /// starting at the given offsets, as a WAV.
+    private static func chime(_ notes: [(hz: Double, at: Double)]) -> NSSound? {
+        let rate = 44_100.0
+        let length = (notes.map(\.at).max() ?? 0) + 0.32
+        var samples = [Float](repeating: 0, count: Int(rate * length))
+        for (hz, at) in notes {
+            for i in Int(at * rate)..<samples.count {
+                let t = Double(i) / rate - at
+                let envelope = min(1, t / 0.006) * exp(-t * 11)
+                samples[i] += Float(envelope * (sin(2 * .pi * hz * t) + 0.18 * sin(4 * .pi * hz * t)) * 0.32)
+            }
+        }
+        var wav = Data()
+        func put<T>(_ v: T) { withUnsafeBytes(of: v) { wav.append(contentsOf: $0) } }
+        let pcm = samples.map { Int16(max(-1, min(1, $0)) * Float(Int16.max)) }
+        wav.append(contentsOf: Array("RIFF".utf8))
+        put(UInt32(36 + pcm.count * 2).littleEndian)
+        wav.append(contentsOf: Array("WAVEfmt ".utf8))
+        put(UInt32(16).littleEndian)
+        put(UInt16(1).littleEndian)
+        put(UInt16(1).littleEndian)
+        put(UInt32(rate).littleEndian)
+        put(UInt32(rate * 2).littleEndian)
+        put(UInt16(2).littleEndian)
+        put(UInt16(16).littleEndian)
+        wav.append(contentsOf: Array("data".utf8))
+        put(UInt32(pcm.count * 2).littleEndian)
+        pcm.forEach { put($0.littleEndian) }
+        return NSSound(data: wav)
+    }
+}
+
+/// Past dictations: the text, what was heard before cleanup, and the audio, in
+/// ~/Library/Application Support/YapSketch/Dictations (kept as long as recordings are).
+enum DictationHistory {
+    struct Entry: Codable, Identifiable, Hashable {
+        var id: String
+        var date: Date
+        var text: String
+        var raw: String
+        var model: String
+        var duration: Double
+        var audio: String
+        /// Why there's no text yet (the provider failed and nothing on this Mac could stand in).
+        var failure: String?
+    }
+
+    static var folder: URL {
+        let dir = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(
+            "Library/Application Support/YapSketch/Dictations", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    private static let stamp: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        return f
+    }()
+
+    static func newAudioURL() -> URL { folder.appendingPathComponent(stamp.string(from: Date()) + ".wav") }
+
+    static func add(text: String, raw: String, model: String, duration: Double, audio: URL, failure: String? = nil) {
+        let id = audio.deletingPathExtension().lastPathComponent
+        let entry = Entry(
+            id: id, date: Date(), text: text, raw: raw, model: model, duration: duration, audio: audio.lastPathComponent, failure: failure)
+        save(entry)
+    }
+
+    /// One kept without text: heard again (the cloud model, else this Mac's), and the entry
+    /// filled in. False if it still couldn't be.
+    @MainActor
+    static func retry(_ e: Entry) async -> Bool {
+        let heard = await Dictation.words(in: folder.appendingPathComponent(e.audio), duration: e.duration)
+        let raw = heard.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        var final = TextCleanup.apply(raw)
+        if TextCleanup.aiProvider != nil, !final.isEmpty {
+            let plain = final
+            final = await Deadline.run(12) { await TextCleanup.aiClean(plain) } ?? plain
+        }
+        var entry = e
+        entry.failure = final.isEmpty ? (heard.trouble ?? e.failure) : nil
+        entry.text = final
+        entry.raw = raw
+        entry.model = heard.model
+        save(entry)
+        return !final.isEmpty
+    }
+
+    private static func save(_ entry: Entry) {
+        let id = entry.id
+        let enc = JSONEncoder()
+        enc.outputFormatting = [.prettyPrinted, .sortedKeys]
+        enc.dateEncodingStrategy = .iso8601
+        try? enc.encode(entry).write(to: folder.appendingPathComponent(id + ".json"))
+        NotificationCenter.default.post(name: .yapSketchDictationsChanged, object: nil)
+    }
+
+    static func all() -> [Entry] {
+        let dec = JSONDecoder()
+        dec.dateDecodingStrategy = .iso8601
+        let files = (try? FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)) ?? []
+        return files.filter { $0.pathExtension == "json" }
+            .compactMap { try? dec.decode(Entry.self, from: Data(contentsOf: $0)) }
+            .sorted { $0.date > $1.date }
+    }
+
+    /// To the Trash, its audio too.
+    static func delete(_ e: Entry, notify: Bool = true) {
+        try? FileManager.default.trashItem(at: folder.appendingPathComponent(e.id + ".json"), resultingItemURL: nil)
+        try? FileManager.default.trashItem(at: folder.appendingPathComponent(e.audio), resultingItemURL: nil)
+        if notify { NotificationCenter.default.post(name: .yapSketchDictationsChanged, object: nil) }
+    }
+
+    /// 16 kHz mono 16-bit WAV (what every speech service takes).
+    static func writeWAV(_ samples: [Float], to url: URL) {
+        guard let fmt = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false),
+            let buf = AVAudioPCMBuffer(pcmFormat: fmt, frameCapacity: AVAudioFrameCount(samples.count)),
+            let ch = buf.floatChannelData
+        else { return }
+        buf.frameLength = AVAudioFrameCount(samples.count)
+        samples.withUnsafeBufferPointer { ch[0].update(from: $0.baseAddress!, count: samples.count) }
+        let settings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: 16_000, AVNumberOfChannelsKey: 1,
+            AVLinearPCMBitDepthKey: 16, AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: false,
+        ]
+        guard let file = try? AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false) else {
+            return
+        }
+        try? file.write(from: buf)
+    }
+}
+
+extension Notification.Name {
+    static let yapSketchDictationsChanged = Notification.Name("yapSketchDictationsChanged")
+}

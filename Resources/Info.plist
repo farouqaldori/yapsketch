@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>YapSketch</string>
+	<key>CFBundleExecutable</key>
+	<string>YapSketch</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.yapsketch.app</string>
+	<key>CFBundleName</key>
+	<string>YapSketch</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.1.0</string>
+	<key>CFBundleVersion</key>
+	<string>1</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>YapSketch records your narration so your coding agent can hear what you explain.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>YapSketch turns what you say while recording into text, on your Mac.</string>
+	<key>OpperClientID</key>
+	<string>opper_app_BVTS8eBPzehdwyhxGLhiHQ</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
+	<key>SUPublicEDKey</key>
+	<string>/fRytt0nALXn6ed5/msaVnBhKfUganLvfgC1g2olFWY=</string>
+</dict>
+</plist>

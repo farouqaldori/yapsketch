@@ -1,0 +1,23 @@
+name: Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v7
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: asr-helper
+          shared-key: asr-helper
+      - name: Build YapSketch.app (ad-hoc signed)
+        run: SIGN_IDENTITY=- scripts/build-app.sh
+      - run: codesign --verify --deep --strict build/YapSketch.app

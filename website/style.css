@@ -1,0 +1,1778 @@
+/* Paper, ink, a coral dot and a little sparkle: the icon, as a page. */
+:root {
+  color-scheme: light;
+  --paper: #faf5ec;
+  --ink: #23263a;
+  /* The app's toolbar and pills: one flat neutral near-black, and its soft grey. */
+  --chrome: #1c1c1e;
+  --on-chrome: #a1a1a6;
+  --soft: #8a8272;
+  --line: #e7dccb;
+  --coral: #ff5240;
+  --sun: #ffc53d;
+  --serif: "Fraunces", Georgia, serif;
+  --mono: "Geist Mono", ui-monospace, monospace;
+  font-family: "Geist", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+p,
+h1 {
+  margin: 0;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button {
+  font: inherit;
+}
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+main {
+  padding: 0 52px;
+  overflow-x: clip; /* the demo runs past the edges on phones */
+}
+
+/* Intro */
+.intro {
+  padding: 160px 0 120px;
+  text-align: center;
+}
+.hero-icon {
+  display: block;
+  width: 128px;
+  height: 128px;
+  margin: 0 auto 24px;
+  filter: drop-shadow(0 8px 20px #7a5a3c26);
+}
+h1 {
+  font: 400 clamp(48px, 6vw, 80px) / 1.1 var(--serif);
+  font-variation-settings: "SOFT" 100;
+  letter-spacing: -0.03em;
+}
+.circled {
+  position: relative;
+  white-space: nowrap;
+}
+.circled svg:first-child {
+  position: absolute;
+  left: -14%;
+  top: -14%;
+  width: 128%;
+  height: 128%;
+  overflow: visible;
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 420;
+  stroke-dashoffset: 420;
+  animation: draw 1s 0.4s cubic-bezier(0.6, 0, 0.3, 1) forwards;
+}
+.sparkle {
+  position: absolute;
+  right: -0.6em;
+  top: -0.46em;
+  width: 0.42em;
+  height: 0.42em;
+  fill: var(--sun);
+  transform: scale(0);
+  animation: pop 0.5s 1.25s cubic-bezier(0.2, 1.8, 0.4, 1) forwards;
+}
+.lede {
+  max-width: 30em;
+  margin: 24px auto 30px;
+  font-size: 18px;
+  line-height: 1.5;
+  color: var(--soft);
+}
+
+/* One quiet line under the buttons, as far below them as the line above is. */
+.powered {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 6px;
+  margin: 30px auto 0;
+  font-size: 13px;
+  color: var(--soft);
+  transition: color 0.2s;
+}
+.powered img {
+  border-radius: 4px;
+}
+.powered b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.powered:hover {
+  color: var(--ink);
+}
+
+/* Demo */
+.demo {
+  position: relative;
+  max-width: 1336px;
+  margin: 0 auto;
+}
+/* Frosted glass, the app's icon and a few rounded bars that follow your voice. */
+.listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  padding: 0 18px 0 8px;
+  border-radius: 999px;
+  /* The app's dictation pill: flat near-black, a coral dot and level. */
+  background: var(--chrome);
+  box-shadow:
+    inset 0 0 0 1px #ffffff17,
+    0 2px 4px #1a120c1f,
+    0 10px 26px #1a120c33;
+}
+.listen .live-dot {
+  width: 8px;
+  height: 8px;
+  margin-left: 10px;
+  border-radius: 50%;
+  background: var(--coral);
+  animation: breathe 1.9s ease-in-out infinite;
+}
+@keyframes breathe {
+  50% {
+    opacity: 0.35;
+  }
+}
+.listen .wave {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: 22px;
+}
+.listen .wave i {
+  width: 4px;
+  height: 22px;
+  border-radius: 99px;
+  background: var(--coral);
+  transform: scaleY(0.25);
+}
+.scene {
+  position: relative;
+  --k: 1;
+}
+.screen {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 3% / 5.33%;
+  box-shadow: 0 24px 50px -12px #7a5a3c33;
+}
+.scrim {
+  position: absolute;
+  inset: 0;
+  border-radius: 3% / 5.33%;
+  background: #1a120c;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+.pasted .scrim,
+.finished:not(.animated) .scrim {
+  opacity: 0.38;
+}
+.demo.leaving .scrim {
+  opacity: 0;
+}
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 800 / 450;
+  overflow: visible;
+  pointer-events: none;
+}
+.mono {
+  font-family: var(--mono);
+}
+.serif {
+  font-family: var(--serif);
+}
+.pen {
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1200;
+  stroke-dashoffset: 1200;
+}
+.demo:not(.animated) .pen {
+  stroke-dashoffset: 0;
+}
+.cursor {
+  transition: opacity 0.3s;
+  filter: drop-shadow(0 2px 2px #0003);
+}
+.processing-state .cursor,
+.finished .cursor {
+  opacity: 0;
+}
+/* Drawing, the cursor is the pen's tip. */
+.cursor .nib,
+.drawing .cursor .arrow-cursor {
+  opacity: 0;
+}
+.drawing .cursor .nib {
+  opacity: 1;
+}
+.menubar > rect {
+  fill: #fff;
+  fill-opacity: 0.16;
+}
+.menubar path,
+.menubar text {
+  fill: #fff;
+}
+.menubar text {
+  font-size: 11px;
+  font-weight: 500;
+}
+.menubar .glyph * {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+.menubar .glyph circle {
+  fill: #fff;
+  stroke: none;
+}
+.menu-light {
+  fill: var(--coral);
+  opacity: 0.35;
+}
+.recording .menubar {
+  font-weight: 500;
+}
+.menu-light {
+  opacity: 1;
+}
+
+/* The app's toolbar: ink, like the ribbon */
+.toolbar {
+  position: absolute;
+  left: 50%;
+  bottom: 3.5%;
+  transform: translateX(-50%) scale(var(--k));
+  transform-origin: 50% 100%;
+  width: 492px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 30px;
+  background: var(--chrome);
+  color: #f2f2f2;
+  /* Flat, with a faint edge and a soft shadow: it floats over the screen. */
+  box-shadow:
+    inset 0 0 0 1px #ffffff17,
+    0 1px 3px #1a120c26,
+    0 10px 26px #1a120c38;
+  transition:
+    width 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    height 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    border-radius 0.5s cubic-bezier(0.32, 0.72, 0, 1),
+    scale 0.4s cubic-bezier(0.5, 0, 0.75, 0),
+    opacity 0.3s 0.1s;
+}
+/* Same left and right edges as the status line above: tools from the left, stop at the end. */
+.record-tools {
+  position: absolute;
+  bottom: 0;
+  left: 26px;
+  right: 26px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition:
+    opacity 0.2s,
+    filter 0.2s;
+}
+.record-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+}
+.meter i {
+  width: 2px;
+  height: 16px;
+  border-radius: 1px;
+  background: var(--coral);
+  transform: scaleY(0.4);
+}
+.timer {
+  margin: 0 4px;
+  font: 10px var(--mono);
+  color: var(--on-chrome);
+}
+.divider {
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: #ffffff1c;
+}
+.tool {
+  width: 25px;
+  height: 25px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--on-chrome);
+  font-size: 14px;
+  transition:
+    background 0.25s,
+    color 0.25s;
+}
+.tool svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.drawing .pen-tool,
+.recording:not(.drawing) .pointer-tool {
+  background: #ffffff22;
+  color: #fff;
+}
+.colours {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 2px;
+}
+.colours i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+.colours i:first-child {
+  outline: 1.5px solid #fff;
+  outline-offset: 2px;
+  margin-right: 2px;
+}
+.colours i:nth-child(2) {
+  background: var(--sun);
+}
+.colours i:nth-child(3) {
+  background: #5fcf80;
+}
+.colours i:nth-child(4) {
+  background: #6aa8ff;
+}
+.colours i:nth-child(5) {
+  background: #fff;
+}
+.stop {
+  margin-left: auto;
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ff524033;
+  transition: transform 0.15s;
+}
+.stop i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--coral);
+}
+.stopping .stop {
+  transform: scale(0.85);
+}
+.processing,
+.copied {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  white-space: nowrap;
+  font-size: 12px;
+  opacity: 0;
+  visibility: hidden;
+  /* Leaving: gone at once, so two labels never overlap. */
+  transition:
+    opacity 0.15s,
+    visibility 0s 0.15s;
+}
+/* While you talk the toolbar grows a line on top, and your words stream into it. */
+/* Two rows: straight sides and soft corners, not a stretched pill. */
+.talking .toolbar {
+  height: 70px;
+  border-radius: 18px;
+}
+.status {
+  position: absolute;
+  top: 10px;
+  left: 26px;
+  right: 26px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.talking .status {
+  opacity: 1;
+  transition-delay: 0.2s;
+}
+.said {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  margin-left: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.said .line {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  gap: 0.28em;
+  font-size: 13px;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+/* The next sentence fades in once the last has faded out. */
+.said .line.now {
+  opacity: 1;
+  transition-delay: 0.25s;
+}
+.said .line span {
+  display: none;
+}
+.said .line span.on {
+  display: inline;
+  animation: word 0.14s ease-out;
+}
+@keyframes word {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+/* Working: just a spinner in a small round pill. */
+.processing-state .toolbar {
+  width: 56px;
+  height: 36px;
+}
+.finished .toolbar {
+  width: 196px;
+  height: 38px;
+}
+.leaving .toolbar {
+  scale: 0.6;
+  opacity: 0;
+}
+.processing-state .record-tools,
+.finished .record-tools {
+  opacity: 0;
+  filter: blur(3px);
+  pointer-events: none;
+}
+.processing-state:not(.finished) .processing,
+.finished .copied {
+  opacity: 1;
+  visibility: visible;
+  /* Arriving: once the toolbar has settled into its new size. */
+  transition:
+    opacity 0.25s 0.35s,
+    visibility 0s 0.35s;
+}
+.copied {
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #fff;
+}
+.tick {
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+}
+.tick circle {
+  fill: #43c26b;
+  transform-origin: 12px 12px;
+  scale: 0;
+}
+.tick path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 16;
+  stroke-dashoffset: 16;
+}
+.finished .tick circle {
+  animation: grow 0.45s 0.2s cubic-bezier(0.2, 1.8, 0.4, 1) forwards;
+}
+.finished .tick path {
+  animation: draw 0.3s 0.45s ease-out forwards;
+}
+
+/* The dotted line from the clipboard into the agent */
+.connector {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.connector .dots {
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 0 10;
+}
+.connector .reveal {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 14;
+}
+.demo.leaving .connector,
+.demo.leaving .output {
+  opacity: 0;
+}
+/* Between loops the screen stays; only what was drawn and said goes. */
+.pen {
+  transition: opacity 0.5s;
+}
+.leaving .pen {
+  opacity: 0;
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid #ffffff2a;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* What lands in the agent */
+/* Floats over the screen, just above the toolbar's pill, and grows out of its bottom edge. */
+.handoff {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(3.5% + var(--k) * 38px + 44px);
+  padding: 0 24px;
+}
+.output {
+  max-width: 600px;
+  margin: auto;
+  padding: 15px 20px 17px;
+  border: 1px solid #ffffff99;
+  border-radius: 16px;
+  background: #fffdf9;
+  box-shadow:
+    0 2px 8px #1a120c1f,
+    0 28px 60px -12px #1a120c66;
+  opacity: 0;
+  transform: scale(0.92) rotate(-0.6deg);
+  transform-origin: 50% 100%;
+  transition:
+    opacity 0.4s,
+    transform 0.6s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.pasted .output,
+.finished:not(.animated) .output {
+  opacity: 1;
+  transform: rotate(-0.6deg);
+}
+.output .output-top {
+  margin-bottom: 10px;
+  font: 11px var(--mono);
+  color: var(--soft);
+}
+.output p {
+  font-size: 16px;
+  line-height: 1.6;
+}
+.reference {
+  color: var(--coral);
+  font: 0.85em var(--mono);
+}
+.thumbs {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+.thumb {
+  position: relative;
+  display: block;
+  width: 72px;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+.thumb svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.thumb rect:not(.mark) {
+  fill: #f4eee5;
+}
+.thumb .mark {
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.thumb b {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+code {
+  font: 12px var(--mono);
+  color: var(--ink);
+}
+
+/* Get it */
+.actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+  font-size: 17px;
+  font-weight: 500;
+}
+.download {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 17px 30px 17px 26px;
+  border-radius: 999px;
+  background: var(--chrome);
+  color: #fff;
+  transition: translate 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+.download:hover {
+  translate: 0 -2px;
+}
+.download:active {
+  translate: 0 1px;
+}
+.download svg {
+  width: 19px;
+  height: 19px;
+  margin-top: -3px;
+  fill: currentColor;
+}
+.github {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--soft);
+  transition: color 0.2s;
+}
+.github svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+.github:hover {
+  color: var(--ink);
+}
+kbd {
+  display: inline-block;
+  min-width: 22px;
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: #fffdf9;
+  font: 11px var(--mono);
+  color: var(--ink);
+}
+/* Features */
+.features,
+.how {
+  max-width: 1120px;
+  margin: 150px auto 0;
+  text-align: center;
+}
+.label {
+  font: 12px var(--mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--soft);
+}
+.features h2,
+.how h2 {
+  margin: 14px 0 52px;
+  font: 400 clamp(34px, 4.4vw, 54px) / 1.1 var(--serif);
+  font-variation-settings: "SOFT" 100;
+  letter-spacing: -0.03em;
+}
+.bento {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  text-align: left;
+}
+/* Every tile: a tinted stage for its picture, then a title and a line. */
+.tile {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 10px 26px;
+  border: 1px solid var(--line);
+  border-radius: 26px;
+  background: #fffdf9;
+  box-shadow: 0 1px 2px #7a5a3c0d;
+  overflow: hidden;
+}
+.tile.wide {
+  grid-column: span 2;
+}
+.art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 16px;
+  height: 210px;
+  margin-bottom: 22px;
+  border-radius: 18px;
+  background: radial-gradient(120% 90% at 50% 0%, #fbf5ec, #f3eadc);
+  overflow: hidden;
+}
+.tile h3,
+.tile p {
+  padding: 0 18px;
+}
+.tile h3 {
+  margin: 0 0 8px;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+}
+.tile p {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--soft);
+}
+.tile kbd {
+  min-width: 0;
+  padding: 1px 5px;
+  margin: 0 1px;
+  font-size: 11px;
+}
+.tile code {
+  font-size: 13px;
+}
+.art > svg {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+}
+.doodle {
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+}
+.seen .doodle {
+  animation: draw 1.1s 0.2s cubic-bezier(0.6, 0, 0.3, 1) forwards;
+}
+.pop {
+  transform-origin: 314px 132px;
+  scale: 0;
+}
+.seen .pop {
+  animation: grow 0.5s 1.25s cubic-bezier(0.2, 1.8, 0.4, 1) forwards;
+}
+.dictate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.key {
+  display: grid;
+  place-items: center;
+  min-width: 52px;
+  height: 52px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-bottom-width: 3px;
+  border-radius: 12px;
+  background: #fff;
+  font: 18px var(--mono);
+}
+.dictate .listen {
+  margin-left: 12px;
+}
+.dictate .wave i {
+  animation: bounce 0.9s ease-in-out infinite;
+}
+.dictate .wave i:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.dictate .wave i:nth-child(3) {
+  animation-delay: -0.6s;
+}
+.dictate .wave i:nth-child(4) {
+  animation-delay: -0.15s;
+}
+.dictate .wave i:nth-child(5) {
+  animation-delay: -0.45s;
+}
+/* Paste: what lands in the prompt box, and where it works. */
+.agent {
+  width: min(460px, 88%);
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--chrome);
+  color: #f2f2f2;
+  font: 12.5px/1.7 var(--mono);
+  text-align: left;
+  box-shadow: 0 10px 24px #1c1c1e26;
+}
+.tile .agent p {
+  padding: 0;
+  font: inherit;
+  color: inherit;
+}
+.agent em {
+  font-style: normal;
+  color: #ff8a7a;
+}
+.agent .dim {
+  color: #8e8e93;
+}
+.agents {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.agent-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fff;
+  font-size: 13px;
+  color: var(--ink);
+}
+.agent-logo img {
+  opacity: 0.85;
+}
+.thumbs.big {
+  gap: 14px;
+  margin: 0;
+}
+.thumbs.big .thumb {
+  width: 96px;
+  height: 62px;
+  box-shadow: 0 6px 14px #7a5a3c14;
+}
+.thumbs.big .thumb:nth-child(1) {
+  rotate: -5deg;
+}
+.thumbs.big .thumb:nth-child(3) {
+  rotate: 5deg;
+}
+/* Local or cloud: two options, the local one chosen. */
+.choice {
+  display: grid;
+  gap: 8px;
+  width: min(270px, 88%);
+}
+.option {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  text-align: left;
+  font-size: 13px;
+  color: var(--ink);
+}
+.option b {
+  display: block;
+  font-weight: 500;
+}
+.option small {
+  display: block;
+  margin-top: 1px;
+  font-size: 11.5px;
+  color: var(--soft);
+}
+.option.on {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 1px var(--ink), 0 6px 14px #23263a1a;
+}
+.option-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: #f4eee5;
+}
+.option.on .option-icon {
+  background: var(--ink);
+}
+.option-icon svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--soft);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.option.on .option-icon svg {
+  stroke: #fff;
+}
+.tick-mark {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+  font-size: 11px;
+}
+.option .clouds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-top: 4px;
+}
+.clouds span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ink);
+}
+.clouds img {
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px #2a1d141f; /* Opper's pale mark needs an edge */
+}
+.chip-dot {
+  grid-row: span 2;
+}
+.option:not(.on) {
+  padding-left: 30px;
+}
+.option .logos {
+  display: flex;
+  gap: 5px;
+  margin-top: 3px;
+}
+.option .logos img {
+  border-radius: 4px;
+}
+.chip-dot {
+  width: 8px;
+  height: 8px;
+  margin: 0 3px 0 4px;
+  border-radius: 50%;
+  background: #5fcf80;
+  box-shadow: 0 0 0 3px #5fcf8040;
+}
+.words {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 240px;
+}
+.word {
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fff;
+  font-size: 13px;
+}
+.word.gone {
+  color: #b9ae9b;
+  text-decoration: line-through;
+  text-decoration-color: var(--coral);
+  text-decoration-thickness: 2px;
+}
+/* The menu bar, and YapSketch's menu open under its icon. */
+.menu-art {
+  width: min(260px, 86%);
+  font-size: 13px;
+}
+.menu-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 12px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(120deg, #a77c55, #6e5a6e);
+  color: #fff;
+  font: 500 12px var(--mono);
+}
+.menu-list {
+  display: grid;
+  margin: 6px 0 0 auto;
+  width: 82%;
+  padding: 6px;
+  border: 1px solid #ffffffb3;
+  border-radius: 10px;
+  background: #fffffff2;
+  box-shadow: 0 10px 24px #26262b26;
+  text-align: left;
+}
+.menu-list span {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+.menu-list span:first-child {
+  background: var(--chrome);
+  color: #fff;
+}
+.menu-list kbd {
+  border: 0;
+  background: none;
+  padding: 0;
+  font-size: 11px;
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* How it works: four notes on the table, a doodled arrow from each to the next */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 34px;
+  margin: 0;
+  padding: 0 8px;
+  list-style: none;
+  text-align: left;
+}
+.steps li {
+  position: relative;
+  padding: 12px 12px 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fffdf9;
+  box-shadow: 0 2px 0 var(--line), 0 14px 30px #7a5a3c14;
+  rotate: -1.6deg;
+  transition:
+    rotate 0.35s cubic-bezier(0.3, 1.5, 0.5, 1),
+    translate 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
+}
+.steps li:nth-child(1) {
+  z-index: 4;
+}
+.steps li:nth-child(2) {
+  z-index: 3;
+  rotate: 1.4deg;
+  translate: 0 14px;
+}
+.steps li:nth-child(3) {
+  z-index: 2;
+  rotate: -0.8deg;
+}
+.steps li:nth-child(4) {
+  rotate: 1.8deg;
+  translate: 0 10px;
+}
+.steps li:hover {
+  rotate: 0deg;
+  translate: 0 -4px;
+}
+.sketch {
+  display: grid;
+  place-items: center;
+  height: 96px;
+  margin-bottom: 16px;
+  border-radius: 14px;
+  background: radial-gradient(120% 90% at 50% 0%, #fbf5ec, #f3eadc);
+}
+.sketch svg {
+  width: 100%;
+  max-width: 170px;
+  height: auto;
+}
+.sketch .ink {
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+.sketch .link {
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 1.6;
+  stroke-dasharray: 0 4;
+  stroke-linecap: round;
+}
+.mini-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: var(--chrome);
+  color: var(--on-chrome);
+  font: 11px var(--mono);
+  box-shadow: 0 6px 14px #23263a33;
+}
+.mini-bar > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--coral);
+}
+.mini-wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+.mini-wave i {
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  background: var(--coral);
+  animation: bounce 0.9s ease-in-out infinite;
+  transform: scaleY(0.3);
+}
+.mini-wave i:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.mini-wave i:nth-child(3) {
+  animation-delay: -0.6s;
+}
+.mini-wave i:nth-child(4) {
+  animation-delay: -0.15s;
+}
+.keys {
+  display: flex;
+  gap: 6px;
+}
+.keys kbd {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-bottom-width: 3px;
+  border-radius: 10px;
+  font-size: 17px;
+}
+.step {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: 0 10px 12px;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+}
+.steps h3 {
+  margin: 0 10px 8px;
+  font-size: 18px;
+  font-weight: 500;
+}
+.steps p {
+  margin: 0 10px;
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--soft);
+}
+.steps p kbd {
+  min-width: 0;
+  padding: 1px 5px;
+  font-size: 11px;
+}
+/* The arrow to the next note, drawn in the gap */
+.hop-down {
+  display: none;
+}
+.hop,
+.hop-down {
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hop {
+  position: absolute;
+  top: 40px;
+  right: -44px;
+  width: 54px;
+  height: 27px;
+  fill: none;
+  stroke: var(--coral);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  z-index: 1;
+}
+.privacy {
+  max-width: 40em;
+  margin: 36px auto 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--soft);
+}
+.privacy code {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+/* For your agent: the CLI, with a terminal that types itself */
+.cli {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 56px;
+  align-items: center;
+  max-width: 1120px;
+  margin: 150px auto 0;
+}
+.cli .label {
+  text-align: left;
+}
+.cli h2 {
+  margin: 14px 0 18px;
+  font: 400 clamp(34px, 4.4vw, 54px) / 1.1 var(--serif);
+  font-variation-settings: "SOFT" 100;
+  letter-spacing: -0.03em;
+}
+.cli-lede {
+  font-size: 17px;
+  line-height: 1.55;
+  color: var(--soft);
+}
+.cli-lede code {
+  font-size: 15px;
+  color: var(--ink);
+}
+.commands {
+  display: grid;
+  gap: 2px;
+  margin: 28px 0 0;
+}
+.commands div {
+  display: grid;
+  grid-template-columns: 13.5em 1fr;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+.commands dt {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink);
+}
+.commands dd {
+  margin: 0;
+  color: var(--soft);
+}
+/* A real terminal window: straight, a title bar, a dark theme. */
+.terminal {
+  overflow: hidden;
+  border-radius: 12px;
+  background: #16171d;
+  box-shadow:
+    0 0 0 0.5px #000,
+    inset 0 0 0 1px #ffffff12,
+    0 22px 50px -12px #1a120c66,
+    0 2px 6px #1a120c33;
+}
+.term-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 12px;
+  background: #28282b;
+  border-bottom: 1px solid #000;
+}
+.term-bar i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff5f57;
+  box-shadow: inset 0 0 0 0.5px #00000033;
+}
+.term-bar i:nth-child(2) {
+  background: #febc2e;
+}
+.term-bar i:nth-child(3) {
+  background: #28c840;
+}
+.term-bar span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font: 500 12px -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #a1a1aa;
+  pointer-events: none;
+}
+.term-body {
+  min-height: 330px;
+  padding: 12px 14px;
+  font: 12.5px/1.6 "SF Mono", ui-monospace, Menlo, var(--mono);
+  color: #d4d4d8;
+}
+/* Long lines wrap, as a terminal does; nothing is cut off. */
+.term-body p {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.term-body .ps,
+.term-body .prompt {
+  color: #8b8b94;
+}
+.term-body .h,
+.term-body b {
+  color: #fafafa;
+  font-weight: 600;
+}
+.term-body em {
+  font-style: normal;
+  color: inherit;
+}
+.term-body .dim {
+  color: #71717a;
+}
+/* Typing, then the report line by line, once it scrolls into view */
+.typed {
+  display: inline-block;
+  vertical-align: bottom;
+  overflow: hidden;
+  width: 0;
+  white-space: nowrap;
+}
+.seen .typed {
+  animation: type 0.9s steps(20) 0.3s forwards;
+}
+.out,
+.later {
+  opacity: 0;
+}
+.seen .out,
+.seen .later {
+  animation: line 0.3s ease-out forwards;
+  animation-delay: calc(1.4s + var(--d) * 0.28s);
+}
+.caret {
+  display: inline-block;
+  width: 7.5px;
+  height: 15px;
+  vertical-align: -3px;
+  background: #d4d4d8;
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes type {
+  to {
+    width: 20ch;
+  }
+}
+@keyframes line {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+  to {
+    opacity: 1;
+    translate: 0;
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+footer {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: min(1120px, 100% - 104px);
+  margin: 140px auto 0;
+  padding: 72px 0 48px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  color: var(--soft);
+}
+.foot-icon {
+  width: 56px;
+  height: 56px;
+  filter: drop-shadow(0 6px 14px #7a5a3c26);
+}
+.foot-line {
+  font: 400 clamp(26px, 3vw, 34px) / 1.2 var(--serif);
+  font-variation-settings: "SOFT" 100;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.foot-line .circled svg {
+  animation: none;
+  stroke-dashoffset: 0;
+  stroke-width: 2.4;
+}
+footer nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  margin-top: 6px;
+  font-size: 14px;
+}
+footer nav a:hover {
+  color: var(--ink);
+}
+/* The same Download and open-source link as up top, between the line and the X link. */
+footer .actions {
+  margin: 8px 0 4px;
+}
+footer .x svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+.foot-small {
+  font-size: 12px;
+  color: #b0a692;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes pop {
+  to {
+    transform: scale(1) rotate(15deg);
+  }
+}
+@keyframes grow {
+  to {
+    scale: 1;
+  }
+}
+@keyframes bounce {
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 900px) {
+  .intro {
+    padding: 100px 0 40px;
+  }
+  .hero-icon {
+    width: 96px;
+    height: 96px;
+    margin-bottom: 20px;
+  }
+}
+@media (max-width: 600px) {
+  main {
+    padding: 0 16px;
+  }
+  .intro {
+    padding: 64px 0 40px;
+  }
+  .lede {
+    font-size: 16px;
+  }
+  .actions {
+    gap: 24px;
+  }
+  /* The toolbar straddles the screen's bottom edge (the screen is 16:9 of the column's width). */
+  .toolbar {
+    top: calc(135vw * 0.5625 - 11px);
+    bottom: auto;
+    transform-origin: 50% 0;
+    width: 338px;
+    max-width: 100%;
+    height: 35px;
+  }
+  .talking .toolbar {
+    height: 58px;
+    border-radius: 14px;
+  }
+  .status {
+    top: 6px;
+    left: 16px;
+    right: 16px;
+    gap: 5px;
+  }
+  .said .line {
+    width: 100%;
+    font-size: 11px;
+  }
+  /* Once a sentence is too long for the line, older words slide off the left. */
+  .said .line.tail {
+    justify-content: flex-end;
+  }
+  .said:has(.tail) {
+    mask-image: linear-gradient(90deg, transparent, #000 18px);
+  }
+  .record-tools {
+    height: 35px;
+    left: 16px;
+    right: 16px;
+    gap: 4px;
+  }
+  .tool {
+    width: 20px;
+    height: 22px;
+  }
+  .tool svg {
+    width: 14px;
+    height: 14px;
+  }
+  .text-tool {
+    display: none;
+  }
+  .divider {
+    margin: 0;
+  }
+  .colours {
+    gap: 4px;
+  }
+  .colours i {
+    width: 6px;
+    height: 6px;
+  }
+  .timer {
+    margin: 0 2px;
+    font-size: 8px;
+  }
+  .meter {
+    gap: 1px;
+  }
+  .meter i {
+    height: 14px;
+  }
+  .stop {
+    width: 22px;
+    height: 22px;
+  }
+  .finished .toolbar {
+    width: 196px;
+  }
+  .copied {
+    gap: 7px;
+    font-size: 11px;
+  }
+  .output {
+    padding: 13px 14px 15px;
+  }
+  .output p {
+    font-size: 12px;
+  }
+  /* Too small to float over: the card sits under the screen and grows from its top edge. */
+  /* The demo runs past both edges of the phone, cropped; the toolbar and the pasted card stay
+     in view, over it. */
+  .demo {
+    margin: 0 -16px 84px;
+  }
+  .scrim {
+    border-radius: 0;
+  }
+  .scene {
+    width: 135vw;
+    margin-left: -17.5vw;
+  }
+  .handoff {
+    bottom: 26px;
+    padding: 0 calc(17.5vw + 14px);
+  }
+  .output {
+    padding: 11px 13px 13px;
+  }
+  .output .output-top {
+    margin-bottom: 6px;
+  }
+  .thumbs {
+    margin-top: 10px;
+  }
+  .features {
+    margin-top: 56px;
+  }
+  .bento,
+  .steps {
+    grid-template-columns: 1fr;
+  }
+  .steps {
+    gap: 56px;
+  }
+  .steps li,
+  .steps li:nth-child(n) {
+    translate: none;
+  }
+  /* Stacked: a hand-drawn arrow down to the next note, over both. */
+  .hop {
+    display: none;
+  }
+  .hop-down {
+    display: block;
+    position: absolute;
+    left: 50%;
+    bottom: -48px;
+    width: 24px;
+    height: 40px;
+    translate: -50% 0;
+    z-index: 1;
+  }
+  .how {
+    margin-top: 90px;
+  }
+  .cli {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    margin-top: 90px;
+  }
+  .commands div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .term-body {
+    min-height: 0;
+    font-size: 10.5px;
+  }
+  .tile.wide {
+    grid-column: auto;
+  }
+  .tile {
+    min-height: 0;
+    padding: 10px 10px 22px;
+  }
+  .art {
+    height: auto;
+    min-height: 180px;
+    padding: 24px 12px;
+  }
+  footer {
+    width: auto;
+    margin: 90px 16px 0;
+    padding-top: 56px;
+  }
+  footer nav {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px 22px;
+  }
+}
+.still *,
+.still *::before,
+.still *::after {
+  transition: none !important;
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+  .circled svg:first-child {
+    stroke-dashoffset: 0;
+  }
+  .sparkle {
+    transform: none;
+  }
+  .tick circle,
+  .pop {
+    scale: 1;
+  }
+  .tick path,
+  .doodle {
+    stroke-dashoffset: 0;
+  }
+  .typed {
+    width: auto;
+  }
+  .out,
+  .later {
+    opacity: 1;
+  }
+  .cursor {
+    display: none;
+  }
+}

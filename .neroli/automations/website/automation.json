@@ -1,0 +1,9 @@
+{
+  "description" : "Serves the YapSketch website at http://127.0.0.1:4321 (never cached)",
+  "icon" : "globe",
+  "runner" : "shell",
+  "title" : "Website",
+  "trigger" : {
+    "kind" : "manual"
+  }
+}

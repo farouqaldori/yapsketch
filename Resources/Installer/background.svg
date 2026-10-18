@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 420" width="660" height="420">
+  <!-- The dmg window's background (scripts/make-dmg-background.sh). Finder draws the icons on top,
+       centered at (182, 200) and (478, 200), in a window 660 × 388 below its title bar:
+       scripts/release.sh lays them out. The paper goes on below that, for a taller title bar;
+       the footer sits high enough to clear Finder's path bar, for whoever has it on. -->
+  <rect width="660" height="420" fill="#faf5ec"/>
+  <text x="330" y="59" text-anchor="middle" font-family="Fraunces" font-size="26" letter-spacing="-0.4" fill="#23263a">Drag YapSketch into Applications</text>
+  <text x="330" y="88" text-anchor="middle" font-family="Geist" font-size="13" fill="#8a8272">Then open it from Applications. It lives in your menu bar.</text>
+  <path d="M263 210C295 178 355 176 391 200M377 188l15 13-18 6" fill="none" stroke="#ff5240" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="330" y="350" text-anchor="middle" font-family="Geist" font-size="11.5" fill="#b0a692">yapsketch · free and open source</text>
+</svg>
