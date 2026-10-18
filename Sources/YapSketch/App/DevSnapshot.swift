@@ -137,6 +137,8 @@ enum DevSnapshot {
         shoot(status.debugPanel, "status-working")
         status.done("Copied to clipboard")
         shoot(status.debugPanel, "status-done")
+        status.notice("Copied to clipboard")
+        shoot(status.debugPanel, "status-copied")
         status.problem("Couldn't start recording. Try again.", button: "Try Again") {}
         shoot(status.debugPanel, "status-problem")
         status.problem("YapSketch needs the microphone to record", button: "Turn On") {}

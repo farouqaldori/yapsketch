@@ -145,7 +145,6 @@ final class StatusPill {
 }
 
 private final class PillView: NSView {
-    static let width: CGFloat = 340
     static let busyWidth: CGFloat = 60
     static let height: CGFloat = 44
 
@@ -193,7 +192,7 @@ private final class PillView: NSView {
     var fittingWidth: CGFloat {
         var w = 14 + (tick.isHidden ? 0 : 26) + ceil(label.intrinsicContentSize.width) + 22
         if actions { w += close.width + 4 + (copy.isHidden ? 0 : copy.width + 12) }
-        return min(560, max(Self.width, w))
+        return min(560, max(120, w))
     }
 
     override func layout() {
