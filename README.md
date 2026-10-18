@@ -1,13 +1,6 @@
-<p align="center"><img src="website/icon.png" width="96" alt="" /></p>
+<p align="center"><img src=".github/assets/hero.png" alt="YapSketch: it's faster to show than to type. Talk and draw on your screen, and YapSketch turns it into a prompt for your coding agent." /></p>
 
-<h1 align="center">YapSketch</h1>
-
-<p align="center"><b>Show your agent what you mean.</b><br />
-Some things are faster to show than to type. Talk, draw on your screen, and paste the result into any agent.</p>
-
----
-
-Record your screen while you talk. Circle, box or point at what you mean. When you stop, your words with a marker for each thing you showed, and one picture per marker with its number on it, are on your clipboard:
+Stop typing paragraphs to explain one bug. Record your screen, say what's wrong and point at it. When you stop, Jev works out which of your words go with what you showed and picks the clearest picture for each point. Your words, numbered, with those pictures, are on your clipboard:
 
 ```
 As you can see here these are not centered properly [1] and this one should match it [2]
@@ -20,14 +13,22 @@ For the details, run `yapsketch show k3x9`.
 
 Paste it into Claude Code, Codex, Cursor, or anything with a prompt box.
 
-Or just dictate: hold `fn`, speak, let go. Your words land wherever you're typing.
+<p align="center"><img src=".github/assets/paste.png" alt="One paste, every detail: your words numbered [1] and [2] in a coding agent, with a picture for each point." /></p>
 
 ## How it works
 
+<p align="center"><img src=".github/assets/how.png" alt="Talk, draw, paste: record and talk, point at it, then paste." /></p>
+
 1. **You record.** Press `⌃⌥R`. YapSketch records your screen and your voice, on your Mac.
-2. **You talk and mark.** Say what you mean, the way you'd tell a colleague. Circle, box or point at what you're talking about.
-3. **It lines things up.** Your speech becomes text. Jev divides it into points, works out which of your marks go with each (a circle and an arrow at one button are one point), and picks the clearest moment for its picture, or a strip of frames when it's about something moving.
+2. **You talk and point.** Say what you mean, the way you'd tell a colleague. Circle it, draw on it or just wave the pointer at it.
+3. **Jev lines it up.** Your speech becomes text. Jev divides it into points, works out what you showed for each (a circle and an arrow at one button are one point), and picks the clearest moment for its picture, or a strip of frames when it's about something moving.
 4. **You paste.** Your words with [1], [2] and a picture for each are on your clipboard.
+
+## Or just yap
+
+<p align="center"><img src=".github/assets/dictate.png" alt="Hold fn, speak, let go: your words land wherever you're typing." /></p>
+
+Hold `fn`, speak, let go. Your words land wherever you're typing, turned into text on your Mac, with fillers like "um" tidied away.
 
 ## Shortcuts
 
@@ -71,7 +72,7 @@ macOS 15+. Needs Screen Recording, Microphone, Accessibility and Input Monitorin
 
 ## Credits
 
-- [Jev](https://typesafe.ai) by TypeSafe matches what you said to what you marked and picks the pictures.
+- [Jev](https://typesafe.ai) by TypeSafe matches what you said to what you showed and picks the pictures.
 - [transcribe.cpp](https://github.com/handy-computer/transcribe.cpp) runs speech recognition on your Mac (Parakeet and Whisper models).
 - [Handy](https://github.com/cjpais/Handy) inspired the dictation.
 - [perfect-freehand](https://github.com/steveruizok/perfect-freehand) by Steve Ruiz draws the ink (ported to Swift, MIT).
