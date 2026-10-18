@@ -1,0 +1,8 @@
+// The website, as static files on Cloudflare: run `wrangler deploy` here.
+{
+  "name": "yapsketch",
+  "compatibility_date": "2026-10-01",
+  "main": "worker.js",
+  "assets": { "directory": ".", "binding": "ASSETS", "run_worker_first": true },
+  "routes": [{ "pattern": "yapsketch.com", "custom_domain": true }]
+}
