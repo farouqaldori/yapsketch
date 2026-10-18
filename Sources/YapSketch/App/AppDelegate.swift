@@ -543,8 +543,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             (try? String(contentsOf: folder.appendingPathComponent("PROMPT.md"), encoding: .utf8))
             ?? "Run `yapsketch show \(folder.lastPathComponent)` to see my screen recording, then do what I ask in it."
         if pasteWhenDone, let prompt = lastPrompt {
-            await Paster.deliver(prompt, mode: copyWhenDone ? .pasteAndKeep : .paste, submit: false)
-            pill.done("Pasted into \(NSWorkspace.shared.frontmostApplication?.localizedName ?? "the app in front")" + note)
+            if await Paster.deliver(prompt, mode: copyWhenDone ? .pasteAndKeep : .paste, submit: false) {
+                pill.done("Pasted into \(NSWorkspace.shared.frontmostApplication?.localizedName ?? "the app in front")" + note)
+            } else {
+                pill.done("Copied to clipboard" + note)
+            }
         } else {
             if copyWhenDone { copyLastPrompt() }
             pill.done((copyWhenDone ? "Copied to clipboard" : "Report ready") + note)

@@ -232,10 +232,9 @@ final class Dictation {
                 }
                 return
             }
-            await Paster.deliver(final)
-            let mode = Paster.mode
+            let pasted = await Paster.deliver(final)
             let app = NSWorkspace.shared.frontmostApplication?.localizedName
-            let done = mode == .copy || !AXIsProcessTrusted() ? "Copied" : app.map { "Pasted into \($0)" } ?? "Pasted"
+            let done = !pasted ? "Copied" : app.map { "Pasted into \($0)" } ?? "Pasted"
             pill.done(done + (heard.trouble.map { " · \($0)" } ?? ""))
             DictationHistory.add(text: final, raw: raw, model: heard.model, duration: duration, audio: audio)
             Log.info(String(format: "dictation: %d words in %.1fs of speech (%@)", final.split(separator: " ").count, duration, heard.model))
