@@ -11,6 +11,9 @@ permissions:
 
 jobs:
   release:
+    # Off until the secrets below are set: then set the repository variable RELEASE_FROM_CI to
+    # true. Until then releases are cut on a Mac with scripts/release.sh.
+    if: vars.RELEASE_FROM_CI == 'true'
     runs-on: macos-26
     env:
       NOTARY_PROFILE: yapsketch
