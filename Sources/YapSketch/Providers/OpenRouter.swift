@@ -23,7 +23,6 @@ struct OpenRouter: Provider {
 
     var jev: JevEndpoint? { JevEndpoint(url: URL(string: Self.api + "/alpha/decisions")!, model: "typesafe/jev-1.14", images: .inline) }
 
-    var chat: ChatEndpoint? { ChatEndpoint(url: URL(string: Self.api + "/v1/chat/completions")!, model: "anthropic/claude-haiku-5.5") }
 
     var speech: [SpeechOffer] {
         [

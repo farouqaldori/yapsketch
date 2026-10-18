@@ -212,11 +212,7 @@ final class Dictation {
             }
             if heard.text.isEmpty { heard = await Self.words(in: audio, duration: duration) }
             let raw = heard.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            var final = TextCleanup.apply(raw)
-            if TextCleanup.aiProvider != nil, !final.isEmpty, !Task.isCancelled {
-                let plain = final
-                final = await Deadline.run(12) { await TextCleanup.aiClean(plain) } ?? plain
-            }
+            let final = TextCleanup.apply(raw)
             guard !Task.isCancelled else {
                 try? FileManager.default.removeItem(at: audio)
                 return
@@ -370,11 +366,7 @@ enum DictationHistory {
     static func retry(_ e: Entry) async -> Bool {
         let heard = await Dictation.words(in: folder.appendingPathComponent(e.audio), duration: e.duration)
         let raw = heard.text.trimmingCharacters(in: .whitespacesAndNewlines)
-        var final = TextCleanup.apply(raw)
-        if TextCleanup.aiProvider != nil, !final.isEmpty {
-            let plain = final
-            final = await Deadline.run(12) { await TextCleanup.aiClean(plain) } ?? plain
-        }
+        let final = TextCleanup.apply(raw)
         var entry = e
         entry.failure = final.isEmpty ? (heard.trouble ?? e.failure) : nil
         entry.text = final

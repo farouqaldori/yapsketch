@@ -28,7 +28,6 @@ struct Opper: Provider {
         JevEndpoint(url: URL(string: Self.api + "/v3/compat/v1/systemone")!, model: "typesafe/jev-1.14.0", images: .multipart)
     }
 
-    var chat: ChatEndpoint? { ChatEndpoint(url: URL(string: Self.api + "/v3/compat/chat/completions")!, model: "anthropic/claude-haiku-5-5") }
 
     var speech: [SpeechOffer] {
         [

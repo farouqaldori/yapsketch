@@ -146,30 +146,4 @@ enum TextCleanup {
         }
         return String(out + Array(repeating: "0", count: 4 - out.count))
     }
-
-    // MARK: AI cleanup (dictation)
-
-    static var aiProvider: (any Provider)? {
-        Providers.named(UserDefaults.standard.string(forKey: "dictationCleanup")).flatMap { $0.chat != nil && $0.isConnected ? $0 : nil }
-    }
-
-    static let aiPrompt = """
-        You clean up dictated text. Fix punctuation, capitalization and obvious speech-recognition \
-        mistakes; remove false starts and repeated words. Keep the speaker's words, meaning and \
-        tone; don't add, summarize or answer anything. Reply with only the cleaned text.
-        """
-
-    static func aiClean(_ text: String) async -> String? {
-        guard let provider = aiProvider, let chat = provider.chat, let key = provider.key, !text.isEmpty else { return nil }
-        let body: [String: Any] = [
-            "model": chat.model, "temperature": 0,
-            "messages": [["role": "system", "content": aiPrompt], ["role": "user", "content": text]],
-        ]
-        guard let obj = await ProviderHTTP.post(provider, chat.url, key: key, json: body, timeout: 20),
-            let choice = (obj["choices"] as? [[String: Any]])?.first,
-            let content = (choice["message"] as? [String: Any])?["content"] as? String
-        else { return nil }
-        let cleaned = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        return cleaned.isEmpty ? nil : cleaned
-    }
 }

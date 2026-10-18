@@ -16,8 +16,6 @@ protocol Provider: Sendable {
     var speech: [SpeechOffer] { get }
     /// Use `ProviderHTTP` so problems are noted.
     func transcribe(_ audio: Data, format: AudioFormat, model: String, key: String) async -> [TranscriptSegment]?
-    /// An OpenAI-compatible chat endpoint, for tidying up dictation.
-    var chat: ChatEndpoint? { get }
 }
 
 extension Provider {
@@ -26,7 +24,6 @@ extension Provider {
     var jev: JevEndpoint? { nil }
     var speech: [SpeechOffer] { [] }
     func transcribe(_ audio: Data, format: AudioFormat, model: String, key: String) async -> [TranscriptSegment]? { nil }
-    var chat: ChatEndpoint? { nil }
 
     var key: String? { Credentials.key(for: id) }
     var isConnected: Bool { key != nil }
@@ -75,22 +72,6 @@ struct JevEndpoint: Sendable {
     /// How pictures travel: multipart parts (System One), or inline in the JSON (Decisions API).
     let images: Images
     enum Images: Sendable { case multipart, inline }
-}
-
-struct ChatEndpoint: Sendable {
-    let url: URL
-    let model: String
-
-    /// "anthropic/claude-haiku-5-5" → "Claude Haiku 5.5".
-    var modelName: String {
-        let parts = (model.split(separator: "/").last ?? "").split(separator: "-")
-        var words: [String] = []
-        var version: [String] = []
-        for p in parts {
-            if p.first?.isNumber == true { version.append(String(p)) } else { words.append(p.prefix(1).uppercased() + p.dropFirst()) }
-        }
-        return (words + (version.isEmpty ? [] : [version.joined(separator: ".")])).joined(separator: " ")
-    }
 }
 
 struct SpeechOffer: Sendable {

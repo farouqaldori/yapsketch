@@ -351,7 +351,7 @@ private struct DictationDetail: View {
                 }
                 if e.raw != e.text, !e.raw.isEmpty {
                     VStack(alignment: .leading, spacing: 6) {
-                        SectionLabel("Before tidying up")
+                        SectionLabel("As heard")
                         Text(e.raw).font(.ui(13.5)).foregroundStyle(.soft).textSelection(.enabled)
                     }
                 }

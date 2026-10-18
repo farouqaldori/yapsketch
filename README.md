@@ -55,7 +55,7 @@ The paste is the short version. The `yapsketch` command, installed with the app,
 
 Speech is turned into text on your Mac by default. Prefer a cloud model? Connect a provider in Settings › Models:
 
-- **Opper** or **OpenRouter** (sign in): Jev, cloud speech models, and AI tidy-up for dictation.
+- **Opper** or **OpenRouter** (sign in): Jev and cloud speech models.
 - **TypeSafe** (your key): Jev.
 
 Recordings stay in `~/Movies/YapSketch`. Words and pictures only leave your Mac if you turn on Jev or a cloud speech model, and then only to the provider you picked.

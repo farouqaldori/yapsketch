@@ -4,7 +4,6 @@ import SwiftUI
 struct DictationPane: View {
     @AppStorage("pasteMode") private var pasteMode = Paster.Mode.paste.rawValue
     @AppStorage("pasteSubmit") private var submit = false
-    @AppStorage("dictationCleanup") private var cleanup = "off"
     @AppStorage("removeFillers") private var removeFillers = true
     @AppStorage("customWords") private var customWords = ""
     @AppStorage("sounds") private var sounds = true
@@ -12,7 +11,6 @@ struct DictationPane: View {
     @State private var trusted = AXIsProcessTrusted()
 
     var body: some View {
-        let accounts = Providers.connected.filter { $0.chat != nil }
         BrandPage("Dictation") {
             BrandSection(footer: "Press Esc to cancel a dictation. Nothing is pasted.") {
                 BrandRow("Shortcut", subtitle: "Hold to talk, or tap to start and stop") {
@@ -38,16 +36,6 @@ struct DictationPane: View {
                     }
                 }
             }
-            BrandSection(footer: "Fixes punctuation and false starts without changing your words. Your text is sent to the provider you choose.") {
-                BrandRow("Tidy up with AI", subtitle: tidySubtitle(accounts)) {
-                    Picker("Tidy up with AI", selection: $cleanup) {
-                        Text("Off").tag("off")
-                        ForEach(accounts, id: \.id) { p in Text(p.name).tag(p.id) }
-                    }
-                    .labelsHidden().fixedSize()
-                    .disabled(accounts.isEmpty)
-                }
-            }
             BrandSection("Words", footer: "Also used for screen recordings.") {
                 BrandRow("Remove “um” and “uh”", isOn: $removeFillers)
                 VStack(alignment: .leading, spacing: 10) {
@@ -68,13 +56,5 @@ struct DictationPane: View {
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             trusted = AXIsProcessTrusted()
         }
-    }
-
-    private func tidySubtitle(_ accounts: [any Provider]) -> String {
-        if let p = accounts.first(where: { $0.id == cleanup }), let chat = p.chat { return "\(chat.modelName) via \(p.name)" }
-        if let chat = accounts.first?.chat {
-            return "Off. Uses \(chat.modelName) through \(accounts.map(\.name).formatted(.list(type: .or)))."
-        }
-        return "Connect \(Providers.all.filter { $0.chat != nil }.map(\.name).formatted(.list(type: .or))) to use this"
     }
 }
