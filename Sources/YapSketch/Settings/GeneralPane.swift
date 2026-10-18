@@ -13,7 +13,7 @@ struct GeneralPane: View {
 
     var body: some View {
         BrandPage("General") {
-            BrandSection("Shortcuts", footer: "Click a shortcut and press the new keys. Esc cancels.") {
+            BrandSection("Shortcuts") {
                 ForEach(ShortcutAction.allCases) { action in
                     BrandRow(
                         action.title,
@@ -41,9 +41,9 @@ struct GeneralPane: View {
                 BrandRow("Copy the instructions for your agent", isOn: $copyWhenDone)
                 BrandRow("Paste them into the app in front", subtitle: "Works when your agent's prompt box is active.", isOn: $pasteWhenDone)
             }
-            BrandSection {
-                BrandRow("Sounds", subtitle: "When you record, stop, get a report, dictate, or something goes wrong") {
-                    Picker("Sounds", selection: $soundPack) {
+            BrandSection("Sounds") {
+                BrandRow("Sound pack", subtitle: "When you record, stop, get a report, dictate, or something goes wrong") {
+                    Picker("Sound pack", selection: $soundPack) {
                         Text("Off").tag("off")
                         Divider()
                         ForEach(Sounds.Pack.allCases) { p in Text(p.name).tag(p.rawValue) }
