@@ -64,6 +64,7 @@ jobs:
           path: |
             build/release/*/YapSketch-*.zip
             build/release/*/YapSketch-*.dmg
+            build/release/*/YapSketch.dmg
             build/release/*/appcast.xml
 
       - name: Draft the GitHub release
@@ -73,7 +74,7 @@ jobs:
           version="${GITHUB_REF_NAME#v}"
           out="build/release/$version"
           gh release create "$GITHUB_REF_NAME" --draft --title "YapSketch $version" --notes-file "$RUNNER_TEMP/notes.md" \
-            "$out/YapSketch-$version.zip" "$out/YapSketch-$version.dmg" "$out/appcast.xml"
+            "$out/YapSketch-$version.zip" "$out/YapSketch-$version.dmg" "$out/YapSketch.dmg" "$out/appcast.xml"
 
       - name: Remove the keychain
         if: always()

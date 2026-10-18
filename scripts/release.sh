@@ -30,6 +30,9 @@ OUT="build/release/$VERSION"
 APP="$OUT/YapSketch.app"
 ZIP="$OUT/YapSketch-$VERSION.zip"
 DMG="$OUT/YapSketch-$VERSION.dmg"
+# The same .dmg under a name that never changes: the website links to
+# releases/latest/download/YapSketch.dmg, which is always the newest.
+LATEST_DMG="$OUT/YapSketch.dmg"
 
 if [[ -z "${SIGN_IDENTITY:-}" ]]; then
     SIGN_IDENTITY="$(security find-identity -v -p codesigning | grep -m1 'Developer ID Application' | awk '{print $2}' || true)"
@@ -98,6 +101,7 @@ EOF
 codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
 notarize "$DMG"
 [[ "${SKIP_NOTARIZE:-}" == 1 ]] || xcrun stapler staple "$DMG"
+cp "$DMG" "$LATEST_DMG"
 
 # Sparkle's EdDSA signature of the zip: sparkle:edSignature="…" length="…".
 SIGN_UPDATE=".build/artifacts/sparkle/Sparkle/bin/sign_update"
@@ -141,4 +145,4 @@ ls -1 "$OUT"
 echo
 echo "Commit the version bump in Resources/Info.plist, tag v$VERSION, then publish with:"
 echo "  gh release create v$VERSION --repo $REPO --title \"YapSketch $VERSION\" --notes-file $NOTES \\"
-echo "    $ZIP $DMG $OUT/appcast.xml"
+echo "    $ZIP $DMG $LATEST_DMG $OUT/appcast.xml"
