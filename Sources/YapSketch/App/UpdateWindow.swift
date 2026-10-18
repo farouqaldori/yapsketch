@@ -109,6 +109,7 @@ private struct UpdateView: View {
                 HStack(spacing: 12) {
                     Toggle(isOn: $byItself) { Text("Update by itself from now on").font(.ui(13)).foregroundStyle(.inkSoft) }
                         .toggleStyle(.checkbox)
+                        .focusable(false)
                         .onChange(of: byItself) { updates.updatesByItself = byItself }
                     Spacer()
                     Button("Later", action: close).buttonStyle(.paperLarge).keyboardShortcut(.cancelAction)
