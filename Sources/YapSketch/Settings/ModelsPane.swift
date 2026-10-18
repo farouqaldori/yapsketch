@@ -12,16 +12,16 @@ struct ModelsPane: View {
 
     var body: some View {
         BrandPage("Models") {
-            BrandSection(footer: "Smart pictures are powered by Jev from TypeSafe.") {
+            BrandSection("In use") {
                 speech
                 pictures
             }
             .id(accountsRevision)
-            BrandSection("Accounts", footer: "Connect one to turn on smart pictures and cloud speech models. Without one, speech still runs on your Mac.") {
+            BrandSection("Accounts") {
                 ForEach(Accounts.shared.all) { AccountRow(account: $0) }
             }
             let downloaded = ModelStore.catalog.filter { store.installed.contains($0.id) }
-            BrandSection("Speech models on this Mac", footer: "Private and free. Downloaded once, then they run on your Mac.") {
+            BrandSection("Speech models on this Mac") {
                 ForEach(ModelStore.catalog) { m in LocalModelRow(model: m, store: store) { pick(m.id) } }
                 BrandRow("Free memory when idle") {
                     Picker("Free memory when idle", selection: $unload) {
@@ -33,11 +33,12 @@ struct ModelsPane: View {
                     .labelsHidden().fixedSize()
                 }
             }
-            if !downloaded.isEmpty {
-                BrandSection("Credits", footer: "Speech engine: transcribe.cpp by Handy (MIT). Model conversions by handy-computer.") {
-                    ForEach(downloaded) { m in
-                        BrandRow(m.name) { Link(m.license, destination: URL(string: m.licenseURL)!).font(.ui(13)).foregroundStyle(.ink) }
-                    }
+            BrandSection("Credits") {
+                BrandRow("transcribe.cpp by Handy") {
+                    Link("MIT", destination: URL(string: "https://github.com/handy-computer/transcribe.cpp")!).font(.ui(13)).foregroundStyle(.ink)
+                }
+                ForEach(downloaded) { m in
+                    BrandRow(m.name) { Link(m.license, destination: URL(string: m.licenseURL)!).font(.ui(13)).foregroundStyle(.ink) }
                 }
             }
         }
@@ -105,9 +106,7 @@ struct ModelsPane: View {
         let on = smartPictures
         return BrandRow(
             "Smart pictures",
-            subtitle: connected.isEmpty
-                ? "Your agent finds what you mean faster and spends fewer tokens. Connect an account below to turn it on."
-                : "Ties each thing you say to the spot you marked and picks the clearest picture, so your agent finds what you mean faster and spends fewer tokens.",
+            subtitle: connected.isEmpty ? "Connect an account below to turn it on" : nil,
             badge: "Recommended"
         ) {
             Picker(
@@ -123,14 +122,15 @@ struct ModelsPane: View {
                 if !connected.isEmpty { Divider() }
                 ForEach(connected, id: \.id) { p in
                     Label {
-                        Text("Jev via \(p.name)")
+                        Text(p.name)
                     } icon: {
                         Image(nsImage: ProviderLogo.menuIcon(p.id))
                     }.tag(p.id)
                 }
             }
             .labelsHidden()
-            .fixedSize()
+            // The menu is sized for its text only, so the logo beside it would cut the name short.
+            .frame(minWidth: 150)
             .disabled(connected.isEmpty)
         }
     }

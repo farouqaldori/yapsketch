@@ -6,7 +6,7 @@ struct PermissionsPane: View {
 
     var body: some View {
         BrandPage("Permissions") {
-            BrandSection(footer: "Change them any time in System Settings › Privacy & Security.") {
+            BrandSection("Access") {
                 ForEach(Permission.allCases) { p in
                     BrandRow(p.title, subtitle: p.purpose) {
                         if granted.contains(p) {

@@ -32,17 +32,17 @@ struct GeneralPane: View {
             BrandSection("Startup") {
                 BrandRow(
                     "Open at login",
-                    subtitle: LoginItem.needsApproval ? "Approve YapSketch in System Settings › General › Login Items" : "YapSketch waits in the menu bar",
+                    subtitle: LoginItem.needsApproval ? "Approve YapSketch in System Settings › General › Login Items" : nil,
                     isOn: $opensAtLogin
                 )
                 .onChange(of: opensAtLogin) { LoginItem.set(opensAtLogin) }
             }
             BrandSection("When a recording is done") {
                 BrandRow("Copy the instructions for your agent", isOn: $copyWhenDone)
-                BrandRow("Paste them into the app in front", subtitle: "Works when your agent's prompt box is active.", isOn: $pasteWhenDone)
+                BrandRow("Paste them into the app in front", isOn: $pasteWhenDone)
             }
             BrandSection("Sounds") {
-                BrandRow("Sound pack", subtitle: "When you record, stop, get a report, dictate, or something goes wrong") {
+                BrandRow("Sound pack") {
                     Picker("Sound pack", selection: $soundPack) {
                         Text("Off").tag("off")
                         Divider()
@@ -54,7 +54,7 @@ struct GeneralPane: View {
             }
             if Updates.isEnabled {
                 BrandSection("Updates") {
-                    BrandRow("Update by itself", subtitle: "Installs new versions when you quit YapSketch.", isOn: $updatesByItself)
+                    BrandRow("Update by itself", isOn: $updatesByItself)
                         .onChange(of: updatesByItself) { Updates.shared.updatesByItself = updatesByItself }
                     BrandRow(Self.version) {
                         HStack(spacing: 14) {
