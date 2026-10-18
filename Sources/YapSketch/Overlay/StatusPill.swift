@@ -36,6 +36,10 @@ final class StatusPill {
             }
         }
         view.close.action = { [weak self] in self?.hide() }
+        view.onHover = { [weak self] inside in
+            guard let self, !self.view.isBusy, self.panel.isVisible else { return }
+            if inside { self.hideWork?.cancel() } else { self.hideLater(after: 2) }
+        }
     }
 
     #if DEBUG
@@ -56,31 +60,41 @@ final class StatusPill {
     func done(_ text: String) {
         fix = nil
         view.copy.title = "Copy"
-        show(text, problem: false, for: 10)
+        show(text, problem: false)
     }
 
     /// Done, with `button` (or none) in Copy's place.
     func notice(_ text: String, button: String? = nil, action: (() -> Void)? = nil) {
         fix = action
         view.copy.title = button ?? ""
-        show(text, problem: false, for: 10)
+        show(text, problem: false)
     }
 
-    /// `button` only when there's something to do. Stays a little longer than `done`.
+    /// `button` only when there's something to do.
     func problem(_ text: String, button: String? = nil, action: (() -> Void)? = nil) {
         MainActor.assumeIsolated { Sounds.play(.error) }
         fix = action
         view.copy.title = button ?? ""
-        show(text, problem: true, for: 15)
+        show(text, problem: true)
     }
 
-    private func show(_ text: String, problem: Bool, for seconds: Double) {
+    /// How long a pill stays: a moment when there's nothing to press, long enough to reach its
+    /// button when there is (a problem's fix longest), and as long as the pointer is on it.
+    private func show(_ text: String, problem: Bool) {
+        let button = !view.copy.title.isEmpty
+        stay = button ? (problem ? 15 : 10) : (problem ? 6 : 3)
         let wasVisible = panel.isVisible
         if wasVisible { PanelMotion.crossfade(view, duration: 0.25) }
         view.set(text: text, busy: false, actions: true, problem: problem)
         place(anchor: nil)
         view.layoutSubtreeIfNeeded()
         if wasVisible { view.popTick() }
+        hideLater(after: stay)
+    }
+
+    private var stay: Double = 3
+
+    private func hideLater(after seconds: Double) {
         hideWork?.cancel()
         let work = DispatchWorkItem { [weak self] in self?.hide() }
         hideWork = work
@@ -147,6 +161,14 @@ final class StatusPill {
 private final class PillView: NSView {
     static let busyWidth: CGFloat = 60
     static let height: CGFloat = 44
+    var onHover: ((Bool) -> Void)?
+
+    override func updateTrackingAreas() {
+        trackingAreas.forEach(removeTrackingArea)
+        addTrackingArea(NSTrackingArea(rect: bounds, options: [.mouseEnteredAndExited, .activeAlways, .inVisibleRect], owner: self))
+    }
+    override func mouseEntered(with event: NSEvent) { onHover?(true) }
+    override func mouseExited(with event: NSEvent) { onHover?(false) }
 
     private let spinner = NSProgressIndicator()
     private let label = NSTextField(labelWithString: "")
