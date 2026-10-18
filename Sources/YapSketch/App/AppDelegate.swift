@@ -61,6 +61,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         CLI.install()
+        installEditMenu()
         Storage.cleanUp()
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.applySettings() }
@@ -112,6 +113,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             guard let dir = n.object as? URL else { return }
             MainActor.assumeIsolated { _ = Task { await self?.retryReport(dir) } }
         }
+    }
+
+    /// A menu-bar app shows no menu bar, but ⌘X, ⌘C, ⌘V, ⌘A and ⌘Z in its text fields still come
+    /// from an Edit menu: without one, pasting an API key does nothing.
+    private func installEditMenu() {
+        let edit = NSMenu(title: "Edit")
+        edit.addItem(withTitle: "Undo", action: Selector(("undo:")), keyEquivalent: "z")
+        edit.addItem(withTitle: "Redo", action: Selector(("redo:")), keyEquivalent: "Z")
+        edit.addItem(.separator())
+        edit.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        edit.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        edit.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        edit.addItem(withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+        edit.addItem(.separator())
+        edit.addItem(withTitle: "Close Window", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        let item = NSMenuItem()
+        item.submenu = edit
+        let main = NSMenu()
+        main.addItem(item)
+        NSApp.mainMenu = main
     }
 
     private func registerHotkeys() {

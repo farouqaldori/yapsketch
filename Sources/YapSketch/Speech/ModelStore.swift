@@ -1,4 +1,5 @@
 import CryptoKit
+import QuartzCore
 import Foundation
 
 /// A transcribe.cpp GGUF from the `handy-computer` repos on Hugging Face, pinned to a
@@ -68,6 +69,7 @@ final class ModelStore: NSObject, ObservableObject, URLSessionDownloadDelegate {
 
     /// Download progress (0…1) by model id; a model being checked after download shows 1.
     @Published private(set) var progress: [String: Double] = [:]
+    private var lastProgress: [String: CFTimeInterval] = [:]
     @Published private(set) var installed: Set<String> = []
     @Published var selectedID: String {
         didSet { UserDefaults.standard.set(selectedID, forKey: "modelID") }
@@ -147,7 +149,14 @@ final class ModelStore: NSObject, ObservableObject, URLSessionDownloadDelegate {
     ) {
         guard let id = downloadTask.taskDescription else { return }
         let total = totalBytesExpectedToWrite > 0 ? totalBytesExpectedToWrite : (Self.catalog.first { $0.id == id }?.bytes ?? 1)
-        MainActor.assumeIsolated { progress[id] = min(0.99, Double(totalBytesWritten) / Double(total)) }
+        MainActor.assumeIsolated {
+            // Every chunk would redraw the page hundreds of times a second: only visible steps.
+            let p = min(0.99, Double(totalBytesWritten) / Double(total))
+            let now = CACurrentMediaTime()
+            guard p - (progress[id] ?? 0) >= 0.001, now - (lastProgress[id] ?? 0) >= 1.0 / 15 else { return }
+            lastProgress[id] = now
+            progress[id] = p
+        }
     }
 
     nonisolated func urlSession(_ session: URLSession, downloadTask: URLSessionDownloadTask, didFinishDownloadingTo location: URL) {

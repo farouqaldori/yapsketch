@@ -151,8 +151,9 @@ private struct Downloading: View {
 
     private func sizes(_ m: SpeechModel, _ p: Double, _ done: Bool) -> String {
         if done { return m.size }
-        let got = ByteCountFormatter.string(fromByteCount: Int64(Double(m.bytes) * p), countStyle: .file)
-        return "\(got) of \(m.size)"
+        // Always one decimal: the line keeps its width as the numbers climb.
+        let got = (Double(m.bytes) * p / 1_000_000).formatted(.number.precision(.fractionLength(1)))
+        return "\(got) MB of \(m.size)"
     }
 }
 
