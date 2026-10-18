@@ -1,10 +1,6 @@
 import AppKit
 
-/// The small pill while dictating, at the bottom of the screen with the pointer, in the
-/// recording toolbar's near-black: a pulsing coral dot, the words as they're heard, the
-/// voice's level in coral, the time and ✕; then just a spinner; then a moment of
-/// "Pasted into …" with a green tick.
-/// It never takes focus from the app being typed into.
+/// Never takes focus from the app being typed into.
 @MainActor
 final class DictationPill {
     private let panel: NSPanel
@@ -71,7 +67,6 @@ final class DictationPill {
     }
 
     #if DEBUG
-    /// For the snapshots.
     var debugPanel: NSPanel { panel }
     #endif
 
@@ -94,11 +89,10 @@ final class DictationPill {
         layout(.listening, animated: false)
         place()
         pulse(true)
-        // In with a small lift; quick, so the first words aren't waiting on it.
+        // Quick, so the first words aren't waiting on it.
         PanelMotion.show(panel, rise: 10, duration: 0.2)
     }
 
-    /// The words heard so far (the newest show if they don't fit).
     func text(_ words: String) {
         let words = LiveWords.shown ? words : ""
         label.stringValue = words.isEmpty ? "Listening…" : words
@@ -107,7 +101,6 @@ final class DictationPill {
 
     func level(_ v: Float) { bars.push(v) }
 
-    /// Working on the words: just a spinner, the pill drawn in around it.
     func working() {
         timer?.invalidate()
         pulse(false)
@@ -117,7 +110,6 @@ final class DictationPill {
         spinner.startAnimation(nil)
     }
 
-    /// The live dot breathes while listening, like the recording toolbar's.
     private func pulse(_ on: Bool) {
         guard on else { return liveDot.layer?.removeAnimation(forKey: "pulse") ?? () }
         let a = CABasicAnimation(keyPath: "opacity")
@@ -129,7 +121,6 @@ final class DictationPill {
         liveDot.layer?.add(a, forKey: "pulse")
     }
 
-    /// A short last word ("Pasted into Slack", "Copied", "Nothing heard"), then gone.
     func done(_ text: String, ok: Bool = true) {
         timer?.invalidate()
         spinner.stopAnimation(nil)
@@ -155,8 +146,6 @@ final class DictationPill {
 
     private enum Phase { case listening, working, done }
 
-    /// Listening: dot · words · bars · time · ✕. Working: a spinner, nothing else. Done: tick ·
-    /// text, as wide as the text. The pill keeps its bottom edge and its middle.
     private func layout(_ phase: Phase, animated: Bool = true) {
         let listening = phase == .listening
         bars.isHidden = !listening
@@ -194,7 +183,6 @@ final class DictationPill {
         let old = panel.frame
         let midX = panel.isVisible ? old.midX : old.minX + size.width / 2
         let target = CGRect(x: midX - size.width / 2, y: old.minY, width: size.width, height: h)
-        // Between phases the pill narrows or widens about its middle instead of jumping.
         if animated, panel.isVisible, !PanelMotion.isLeaving(panel) {
             NSAnimationContext.runAnimationGroup { ctx in
                 ctx.duration = 0.32
@@ -207,7 +195,6 @@ final class DictationPill {
         }
     }
 
-    /// Bottom centre of the screen the pointer is on.
     private func place() {
         let mouse = NSEvent.mouseLocation
         let screen = NSScreen.screens.first { $0.frame.contains(mouse) } ?? NSScreen.main
@@ -238,7 +225,6 @@ final class DictationPill {
     }
 }
 
-/// A row of bars showing the last moments of the voice's level.
 private final class LevelBars: NSView {
     var color = NSColor.white
     private var levels = [Float](repeating: 0, count: 7)

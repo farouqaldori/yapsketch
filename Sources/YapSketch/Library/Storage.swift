@@ -12,7 +12,6 @@ enum Storage {
         return f
     }()
 
-    /// When a recording started, from its folder's name.
     static func date(of dir: URL) -> Date? { folderDate.date(from: dir.lastPathComponent) }
 
     /// The recordings older than `days`, oldest first. (Folders are named by when they started.)
@@ -41,7 +40,6 @@ enum Storage {
         }
     }
 
-    /// The bytes all recordings take.
     static func usedBytes() -> Int64 {
         let e = FileManager.default.enumerator(at: AppDelegate.sessionsRoot, includingPropertiesForKeys: [.totalFileAllocatedSizeKey])
         var total: Int64 = 0

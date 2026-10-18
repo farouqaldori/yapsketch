@@ -1,7 +1,6 @@
 import Foundation
 
-/// OAuth's device flow (RFC 8628) as a public client, no secret in the app: get a code,
-/// open the provider's page with it filled in, and poll until the user approves.
+/// OAuth's device flow (RFC 8628) as a public client, with no secret in the app.
 struct DeviceFlow: Sendable {
     let name: String
     /// Where codes are issued, and where they're traded for a key.

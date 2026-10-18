@@ -1,9 +1,7 @@
 import AppKit
 import QuartzCore
 
-/// The floating recording toolbar, in ink: a pulsing coral dot, the mic's waveform, the clock
-/// and the words as they're heard; below, the drawing tools, colors, temporary ink, undo,
-/// clear, discard and stop. It's excluded from the recording, so it never shows up in screenshots.
+/// The floating recording toolbar. It's excluded from the recording, so it never shows up in screenshots.
 final class MiniPlayer {
     var onTool: ((DrawTool?) -> Void)?  // nil = pointer (stop drawing)
     var onColor: ((Int) -> Void)?
@@ -27,7 +25,6 @@ final class MiniPlayer {
         panel.isMovableByWindowBackground = true
         panel.hidesOnDeactivate = false
         panel.becomesKeyOnlyIfNeeded = true
-        // Keep the player out of screen recordings and screenshots.
         panel.sharingType = .none
         panel.contentView = view
 
@@ -53,7 +50,6 @@ final class MiniPlayer {
     }
 
     func update(recording: Bool, elapsed: Double) { view.update(recording: recording, elapsed: elapsed) }
-    /// The newest words heard, while recording.
     func setCaption(_ text: String) { view.setCaption(text) }
     /// The tooltips name the current shortcuts (they can be changed in Settings).
     func refreshTips() { view.refreshTips() }
@@ -78,7 +74,6 @@ private final class PlayerView: NSView {
     private let dot = CALayer()
     private let wave = WaveformView(frame: .zero)
     private let timer = NSTextField(labelWithString: "00:00")
-    /// What you're saying, as it's heard (the newest words).
     private let caption = NSTextField(labelWithString: "")
     private var toolButtons: [(DrawTool?, PillButton)] = []
     private var colorButtons: [ColorDot] = []
@@ -146,8 +141,6 @@ private final class PlayerView: NSView {
 
     required init?(coder: NSCoder) { fatalError() }
 
-    // Above: dot · waveform · clock · what's being said.
-    // Below: tools | colors · · · fade · undo · clear | discard · stop
     private func layoutRows(extra: [PillButton]) {
         let top = bounds.height - 10 - 11
         var x: CGFloat = 18
@@ -191,7 +184,6 @@ private final class PlayerView: NSView {
         return x + 10
     }
 
-    /// Flat near-black with a faint edge.
     override func draw(_ dirtyRect: NSRect) {
         let shape = NSBezierPath(roundedRect: bounds.insetBy(dx: 0.5, dy: 0.5), xRadius: 18, yRadius: 18)
         Brand.chrome.setFill()
@@ -224,7 +216,6 @@ private final class PlayerView: NSView {
     func update(recording: Bool, elapsed: Double) {
         if recording != self.recording {
             self.recording = recording
-            // Coral only while live.
             dot.backgroundColor = (recording ? Brand.coral : Brand.onInkSoft.withAlphaComponent(0.5)).cgColor
             wave.color = recording ? Brand.coral : Brand.onInkSoft.withAlphaComponent(0.4)
             if recording {
@@ -237,7 +228,7 @@ private final class PlayerView: NSView {
             caption.stringValue = recording ? "" : "Drawing"
             caption.textColor = recording ? Brand.card : Brand.onInkSoft
             refreshTips()
-            // Only a recording can be discarded; the button keeps its place either way.
+            // Hidden rather than removed, so the button keeps its place.
             discardButton.isHidden = !recording
         }
         timer.stringValue = recording ? Fmt.clock(elapsed, decimals: false) : "--:--"
@@ -256,13 +247,11 @@ private final class PlayerView: NSView {
         fadeButton.selected = fading
     }
 
-    // The pill is draggable (isMovableByWindowBackground); clicks on controls still work.
     override var mouseDownCanMoveWindow: Bool { true }
 }
 
-/// A round, borderless icon button with an optional "selected" pill behind it.
 private final class PillButton: NSView {
-    /// Not SF Symbols: drawn here. There's no broom; stop and record are coral on a coral wash.
+    /// Drawn here, not SF Symbols: there's no broom, and stop and record are coral on a coral wash.
     static let broom = "yapsketch.broom"
     static let stop = "yapsketch.stop"
     static let record = "yapsketch.record"
@@ -329,7 +318,7 @@ private final class PillButton: NSView {
                 width: img.size.width, height: img.size.height))
     }
 
-    /// A broom, tilted: handle, binding and a fan of bristles, in a 16 pt box.
+    /// A tilted broom in a 16 pt box.
     private func drawBroom(_ color: NSColor) {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
         ctx.saveGState()
@@ -366,7 +355,6 @@ private final class PillButton: NSView {
     }
 }
 
-/// A color swatch; the selected one gets a ring.
 private final class ColorDot: NSView {
     var action: (() -> Void)?
     var selected = false { didSet { needsDisplay = true } }
@@ -397,7 +385,6 @@ private final class ColorDot: NSView {
         if bounds.contains(convert(event.locationInWindow, from: nil)) { action?() }
     }
 
-    /// A small dot; the chosen one a little bigger, ringed in white with ink between.
     override func draw(_ dirtyRect: NSRect) {
         let d: CGFloat = selected ? 10 : 9
         color.setFill()
@@ -411,7 +398,6 @@ private final class ColorDot: NSView {
     }
 }
 
-/// A few reactive bars driven by the mic level.
 private final class WaveformView: NSView {
     var color: NSColor = .white { didSet { needsDisplay = true } }
     private var levels = [Float](repeating: 0, count: 9)

@@ -72,7 +72,6 @@ struct MomentPicker {
         return [p.key: i]
     }
 
-    /// The words spoken within a couple of seconds of `t`.
     private func saying(around t: Double) -> String {
         words.filter { $0.end > t - 2 && $0.start < t + 1 }.map(\.text).joined(separator: " ")
     }

@@ -1,11 +1,9 @@
 import AppKit
 import Carbon
 
-/// Holding fn (🌐) on its own, which Carbon hotkeys can't register: a listen-only event tap
-/// on modifier changes and key presses (Input Monitoring). fn with another key (fn+←, fn+F5,
-/// ⌃fn…) is left alone, so those keep working.
+/// Holding fn (🌐) on its own, which Carbon hotkeys can't register, via a listen-only event tap
+/// (Input Monitoring). fn with another key is left alone.
 final class FnKey {
-    /// Called as a hotkey's press and release would be (main queue).
     var onPress: (() -> Void)?
     var onRelease: (() -> Void)?
     /// Another key came while fn was held, after the press was passed on.
@@ -19,16 +17,14 @@ final class FnKey {
     private var source: CFRunLoopSource?
     private var retry: Timer?
     private var down = false
-    /// This press went with another key: nothing more until fn is let go.
     private var combo = false
     private var passedOn = false
     private var pending: DispatchWorkItem?
 
     var isRunning: Bool { tap != nil }
 
-    /// False without Input Monitoring; tries again every few seconds until it's granted.
-    /// Without it, no tap is even tried: trying raises macOS's own "receive keystrokes"
-    /// alert, ahead of the welcome's page for it.
+    /// False without Input Monitoring, and retries every few seconds. No tap is tried before it's
+    /// granted: trying raises macOS's own "receive keystrokes" alert.
     @discardableResult
     func start() -> Bool {
         guard tap == nil else { return true }
@@ -133,8 +129,7 @@ final class FnKey {
 }
 
 extension FnKey {
-    /// What macOS itself does when 🌐 is pressed ("Press 🌐 key to" in Keyboard settings), or
-    /// nil for Do Nothing. Read, never changed.
+    /// What macOS does when 🌐 is pressed (Keyboard settings), or nil for Do Nothing.
     static func systemAction() -> String? {
         let domain = "com.apple.HIToolbox" as CFString
         CFPreferencesAppSynchronize(domain)

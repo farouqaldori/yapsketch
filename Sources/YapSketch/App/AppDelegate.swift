@@ -9,17 +9,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// Dictation's shortcut when it's fn, which Carbon can't register.
     private let fnKey = FnKey()
     private let player = MiniPlayer()
-    /// Takes the toolbar's place after a recording: progress, then Copy.
     private let pill = StatusPill()
-    /// The instructions of the last report, for the Copy button.
     private var lastPrompt: String?
     private let console = ConsoleMonitor()
     private let input = InputMonitor()
     private let tracker = AppTracker()
     private let appleSpeech = AppleSpeech()
     private let parakeet = ParakeetLive()
-    /// Live words for the current recording: the streaming speech model when there is one,
-    /// Apple's speech recognizer otherwise.
     private var live: LiveTranscriber?
     private var preferredLive: LiveTranscriber { parakeet.isAvailable ? parakeet : appleSpeech }
 
@@ -28,10 +24,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var session: Session?
     private var clockTimer: Timer?
     private var pointerTimer: Timer?
-    /// Small frames and screen changes, noted while recording so processing is quicker.
+    /// Noted while recording so processing is quicker.
     private var liveFrames: LiveFrames?
     private var recordingStartedAt: Date?
-    /// Why the recording ended before it was stopped, for the pill ("Recording stopped early").
     private var stopNote: String?
     private var state: State = .idle {
         didSet {
@@ -49,10 +44,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var systemAudio: Bool { defaults.bool(forKey: "systemAudio") }
     private var logKeystrokes: Bool { defaults.object(forKey: "logKeystrokes") as? Bool ?? true }
     private var smartPictures: Bool { defaults.object(forKey: "smartPictures") as? Bool ?? true }
-    /// Record only the front window instead of the whole screen.
     private var recordWindow: Bool { defaults.bool(forKey: "recordWindow") }
     private var copyWhenDone: Bool { defaults.object(forKey: "copyWhenDone") as? Bool ?? true }
-    /// Paste the instructions into the app in front when they're ready (like dictation).
     private var pasteWhenDone: Bool { defaults.bool(forKey: "pasteWhenDone") }
     private lazy var dictation: Dictation = MainActor.assumeIsolated { Dictation(parakeet: parakeet, hotkeys: hotkeys) }
     private var dictating: Bool { MainActor.assumeIsolated { dictation.isBusy } }
@@ -107,7 +100,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         parakeet.prepare()
         MainActor.assumeIsolated {
-            // The welcome asks for the permissions, one at a time (the first time, or to finish).
             Onboarding.shared.onStartRecording = { [weak self] in self?.toggleRecording() }
             Onboarding.shared.showIfNeeded()
             Updates.shared.isBusy = { [weak self] in self.map { $0.state != .idle } ?? false }
@@ -120,7 +112,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// The shortcuts from Settings (changeable).
     private func registerHotkeys() {
         hotkeys.unregisterAll()
         var taken: Set<ShortcutAction> = []
@@ -253,8 +244,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             }
             recorder.onError = { [weak self] error in
                 Log.info("capture error: \(error)")
-                // The video stopped being written (a full disk, a screen unplugged): save what
-                // there is and say why it's short.
+                // Writing stopped (a full disk, a screen unplugged): save what there is.
                 DispatchQueue.main.async {
                     guard let self, self.state == .recording, self.session === session else { return }
                     self.stopNote = Self.stoppedEarly(error)
@@ -262,7 +252,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 }
             }
             recorder.onStoppedUnexpectedly = { [weak self, weak recorder] in
-                // E.g. "Stop Sharing" in the menu bar: still save what we have and build the report.
+                // E.g. "Stop Sharing" in the menu bar.
                 guard let self, self.recorder === recorder else { return }
                 Task { await self.stopRecording() }
             }
@@ -305,7 +295,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// Why a recording couldn't start, in words that say what to do.
     private enum StartProblem {
         case screenRecording, microphone, space, timedOut
         case other(String)
@@ -332,8 +321,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// A recording that couldn't start: nothing left behind on screen or on disk, and why on
-    /// the pill, with the way to put it right.
     @MainActor
     private func startFailed(_ problem: StartProblem, session failed: Session? = nil) {
         Log.info("start failed: \(problem)")
@@ -369,8 +356,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// The pill's note when capture ends by itself: nil when the person stopped it ("Stop
-    /// Sharing" in the menu bar).
+    /// nil when the person stopped it ("Stop Sharing" in the menu bar).
     static func stoppedEarly(_ error: Error) -> String? {
         let e = error as NSError
         if e.domain == SCStreamErrorDomain, e.code == SCStreamError.userStopped.rawValue { return nil }
@@ -430,8 +416,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         await finishProcessing(session)
     }
 
-    /// What turns a recording into its report, with the settings. `quick`: from the live
-    /// captions and the video alone, nothing sent anywhere. `shown`: its steps in the menu.
+    /// `quick` uses only the live captions and video, nothing sent anywhere. `shown` puts its steps in the menu.
     private func processor(for session: Session, quick: Bool = false, shown: Bool = true) -> PostProcessor {
         var processor = PostProcessor(session: session, refineTranscript: !quick) { [weak self] msg in
             guard shown else { return }
@@ -444,9 +429,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return processor
     }
 
-    /// The report, however processing goes: every step has its own time limit, and this is
-    /// the limit for the lot (generous: local speech models on a long recording take a while).
-    /// Past it, a quick report from the live captions, so there's always something to paste.
+    /// The report within an overall limit (generous: local speech models are slow on long recordings).
+    /// Past it, a quick report from the live captions.
     nonisolated private static func report(
         _ full: PostProcessor, quick: PostProcessor, length: Double, simulate: Simulate? = nil
     ) async -> (output: PostProcessor.Output, quick: Bool)? {
@@ -463,7 +447,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return await Deadline.run(180, { await quick.run() }).map { ($0, true) }
     }
 
-    /// Stops the recording without making a report, and deletes it.
     @MainActor
     private func cancelRecording() async {
         guard state == .recording, let session, let recorder else { return }
@@ -478,7 +461,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         finishPendingTermination()
     }
 
-    /// Ends the capture: input, speech, the frame log, the ink; the session is saved.
     @MainActor
     private func endCapture(_ session: Session, _ recorder: Recorder) async {
         setDraw(false)
@@ -498,7 +480,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         live = nil
         overlay?.isRecording = false
         player.update(recording: false, elapsed: 0)
-        // The recording has its drawings; get them off the screen.
         overlay?.clear()
         // Let late AX lookups and final speech results land.
         try? await Task.sleep(nanoseconds: 700_000_000)
@@ -528,12 +509,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         let notes = [stopNote, quick ? "A quick report, the full one took too long" : nil, output.note].compactMap { $0 }
         Log.info("report ready: \(output.reportURL.path) (transcript: \(output.transcriptSource))\(notes.map { "; \($0)" }.joined())")
-        // What didn't work, after what did: "Copied to clipboard · Opper is out of credits".
         let note = notes.first.map { " · \($0)" } ?? ""
         NotificationCenter.default.post(name: .yapSketchRecordingsChanged, object: nil)
 
-        // The instructions to paste into an agent: copied right away (a setting), or with
-        // the pill's Copy button.
         let folder = output.reportURL.deletingLastPathComponent()
         lastPrompt =
             (try? String(contentsOf: folder.appendingPathComponent("PROMPT.md"), encoding: .utf8))
@@ -545,7 +523,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             if copyWhenDone { copyLastPrompt() }
             pill.done((copyWhenDone ? "Copied to clipboard" : "Report ready") + note)
         }
-        // One sound at the end, as the pill says it's ready (respects the Sounds setting).
         Sounds.play(.done)
         Storage.cleanUp(keeping: session.dir)
         endSession()
@@ -560,7 +537,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         finishPendingTermination()
     }
 
-    /// History's Try Again for a recording whose report couldn't be made.
     @MainActor
     private func retryReport(_ dir: URL) async {
         let failed = dir.appendingPathComponent(RecordingSummary.failureFile)
@@ -578,10 +554,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NotificationCenter.default.post(name: .yapSketchRecordingsChanged, object: nil)
     }
 
-    /// Recordings the app quit or crashed before finishing: their reports made now, once (if
-    /// making it is what crashed, it isn't tried again). A recording whose video was never
-    /// started is nothing to keep. One cut short by a crash has an unreadable video, and stays
-    /// as it is.
+    /// Makes reports for recordings the app quit or crashed before finishing. Each is tried
+    /// once, in case making it is what crashed.
     @MainActor
     private func finishUnfinished() async {
         let fm = FileManager.default
@@ -642,7 +616,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var terminationPending = false
 
-    /// Quitting mid-recording (⌘Q, menu, AppleScript, logout) still finalizes the files and writes the report.
+    /// Quitting mid-recording still finalizes the files and writes the report.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         switch state {
         case .idle:
@@ -724,7 +698,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         player.onDiscard = { [weak self] in Task { await self?.cancelRecording() } }
     }
 
-    /// The player shows while recording or drawing, and mirrors the current tool and ink.
     private func syncPlayer() {
         let drawing = overlay?.drawMode ?? false
         let canvas = overlay?.canvas
@@ -740,7 +713,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var lastLevelPush: CFTimeInterval = 0
 
-    /// Mic loudness for the player's waveform, ~25 updates a second.
+    /// Throttled to about 25 updates a second.
     private func pushLevel(_ sb: CMSampleBuffer) {
         let now = CACurrentMediaTime()
         guard now - lastLevelPush > 0.04 else { return }
@@ -752,7 +725,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc func clearDrawings() {
         overlay?.clear()
     }
-
 
     private func logAnnotation(_ info: AnnotationInfo) {
         guard let session, state == .recording else { return }
@@ -771,8 +743,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if info.duration > 0.05 { e.t0 = max(0, e.t - info.duration) }
         e.app = tracker.current?.app
         e.window = tracker.current?.window
-        // What's under the drawing (role, label, DOM id/classes), so the agent can find it
-        // in code: an arrow's tip, otherwise the middle of the mark.
+        // What's under an arrow's tip, or the middle of the mark, so the agent can find it in code.
         let point = info.tip ?? CGPoint(x: info.bbox.midX, y: info.bbox.midY)
         let global = CGPoint(x: session.display.screen.minX + point.x, y: session.display.screen.minY + point.y)
         DispatchQueue.global(qos: .userInitiated).async {
@@ -805,7 +776,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         input.onClick = { [weak self] click, element in
             guard let self, let s = self.session, s.display.contains(click.global) else { return }
-            // Clicks on YapSketch's own toolbar aren't part of what's being shown.
             var onPlayer = false
             DispatchQueue.main.sync { onPlayer = self.isOnPlayer(click.global) }
             if onPlayer { return }
@@ -829,7 +799,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         input.onShortcut = { [weak self] t, combo in
             guard let s = self?.session else { return }
-            // YapSketch's own hotkeys aren't something the agent needs to know about.
             if Self.ownHotkeys.contains(combo) { return }
             var e = SessionEvent(t: t, kind: .shortcut)
             e.text = combo
@@ -881,7 +850,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
-    /// The menu does things; settings live in the Settings window.
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         func add(_ title: String, _ action: Selector?, key: String = "", mods: NSEvent.ModifierFlags = [], image: String? = nil) {
@@ -909,7 +877,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let recordings = CLI.recordings()
             if !recordings.isEmpty {
                 menu.addItem(.separator())
-                // The newest first; any of them copies its instructions.
                 let copy = NSMenuItem(title: "Copy Recording", action: nil, keyEquivalent: "")
                 let sub = NSMenu()
                 for dir in recordings.prefix(10) {
@@ -927,7 +894,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             menu.addItem(.separator())
             add("Permissions needed…", #selector(openOnboarding), image: "exclamationmark.triangle")
         }
-        // An account that's out of funds or needs reconnecting, until it works again.
         let troubled = Providers.connected.compactMap { p in Credentials.problem(for: p.id).map { (p, $0) } }
         if !troubled.isEmpty {
             if Permission.allGranted { menu.addItem(.separator()) }
@@ -958,8 +924,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add("Quit YapSketch", #selector(quit), key: "q", mods: .command)
     }
 
-    /// Opening the app again (Finder, Spotlight, the Dock) brings back the welcome while it's
-    /// unfinished, else Settings: a menu-bar app has no other window to show.
+    /// A menu-bar app has no other window, so reopening shows the welcome or Settings.
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         MainActor.assumeIsolated {
             if !UserDefaults.standard.bool(forKey: "onboarded") || !Permission.allGranted {
@@ -986,7 +951,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         copyInstructions(dir)
     }
 
-    /// A recording in the menu: when (the time today, else the day too) and its first words.
     private static func menuTitle(_ dir: URL) -> String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")

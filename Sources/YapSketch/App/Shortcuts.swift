@@ -1,8 +1,7 @@
 import AppKit
 import Carbon
 
-/// The global shortcuts you can change in Settings: each action's key and modifiers,
-/// kept in UserDefaults (`shortcut.<action>`), falling back to the defaults.
+/// A global shortcut you can change in Settings, stored as `shortcut.<action>`.
 enum ShortcutAction: String, CaseIterable, Identifiable {
     case record, draw, clear, dictate
     var id: String { rawValue }
@@ -47,13 +46,11 @@ struct Shortcut: Codable, Equatable {
         return s
     }
 
-    /// The key as printed on this keyboard layout, or its symbol.
     var keyName: String {
         if let special = Self.special[keyCode] { return special }
         return Self.character(for: keyCode)?.uppercased() ?? "#\(keyCode)"
     }
 
-    /// For a menu item: its key equivalent and modifier mask.
     var menuKey: String { Self.special[keyCode] == nil ? (Self.character(for: keyCode) ?? "") : "" }
     var menuModifiers: NSEvent.ModifierFlags {
         var m: NSEvent.ModifierFlags = []
@@ -64,7 +61,6 @@ struct Shortcut: Codable, Equatable {
         return m
     }
 
-    /// From a key press in the shortcut recorder.
     init?(event: NSEvent) {
         let f = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         var m = 0
@@ -122,7 +118,7 @@ enum Shortcuts {
         return s
     }
 
-    /// Sets an action's shortcut (`nil`: back to the default); the app re-registers them.
+    /// `nil` goes back to the default.
     static func set(_ action: ShortcutAction, _ shortcut: Shortcut?) {
         if let shortcut, shortcut != action.standard, let data = try? JSONEncoder().encode(shortcut) {
             UserDefaults.standard.set(data, forKey: "shortcut.\(action.rawValue)")
@@ -132,7 +128,6 @@ enum Shortcuts {
         NotificationCenter.default.post(name: .yapSketchShortcutsChanged, object: nil)
     }
 
-    /// The action that already uses `shortcut`, other than `action`.
     static func clash(_ shortcut: Shortcut, besides action: ShortcutAction) -> ShortcutAction? {
         ShortcutAction.allCases.first { $0 != action && get($0) == shortcut }
     }

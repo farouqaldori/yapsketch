@@ -1,7 +1,6 @@
 import Foundation
 
-/// Jev, TypeSafe's System One model (typed judgments, not generated text), through whichever
-/// connected provider offers it: the one chosen in Settings, else the first.
+/// Jev, TypeSafe's System One model (typed judgments, not generated text).
 enum Jev {
     struct Route {
         let provider: any Provider
@@ -9,8 +8,7 @@ enum Jev {
         let endpoint: JevEndpoint
     }
 
-    /// The chosen account's Jev, else another connected one; one that's out of funds or
-    /// needs reconnecting only when there's nothing else.
+    /// A provider that's out of funds or needs reconnecting is used only when there's nothing else.
     static func route() -> Route? {
         let offering = Providers.all.filter { $0.jev != nil && $0.key != nil }
         let chosen = UserDefaults.standard.string(forKey: "jevProvider")
@@ -23,7 +21,6 @@ enum Jev {
     static var model: String { route()?.endpoint.model ?? "jev-1.14.0" }
     static func apiKey() -> String? { route()?.key }
 
-    /// Whether `key` works at `url`: one tiny question.
     static func check(_ key: String, at url: URL, model: String) async -> KeyCheck {
         let body: [String: Any] = [
             "model": model, "state": [:] as [String: Any],
@@ -45,14 +42,13 @@ enum Jev {
         }
     }
 
-    /// A request with JSON questions; the response object, or nil.
     static func ask(_ body: [String: Any], key: String) async -> [String: Any]? {
         guard let route = route(), let data = try? JSONSerialization.data(withJSONObject: body) else { return nil }
         let req = ProviderHTTP.request(route.provider, route.endpoint.url, key: key, timeout: 60)
         return await perform(route.provider, req, data, what: "\((body["questions"] as? [String: Any])?.count ?? 0) questions")
     }
 
-    /// A request with pictures (`assets` naming each image's part), sent the way the route takes them.
+    /// `assets` names each image's part.
     static func ask(_ body: [String: Any], images parts: [(String, Data)], key: String) async -> [String: Any]? {
         guard let route = route() else { return nil }
         let what = "\(parts.count) images"

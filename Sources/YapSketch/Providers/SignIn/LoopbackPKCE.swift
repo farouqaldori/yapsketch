@@ -2,8 +2,8 @@ import CryptoKit
 import Foundation
 import Network
 
-/// OAuth PKCE with the browser coming back to a one-off port on this Mac's loopback: no
-/// client registration, no secret in the app. The code is traded for a key with a JSON POST.
+/// OAuth PKCE with the browser coming back to a one-off loopback port. No client
+/// registration and no secret in the app.
 struct LoopbackPKCE: Sendable {
     let name: String
     /// The provider's consent page; `callback_url`, the challenge and `state` are added.

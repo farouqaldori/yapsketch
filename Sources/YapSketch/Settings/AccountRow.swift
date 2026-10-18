@@ -1,9 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// One provider's account on one line: its mark, name and what it offers; its status and
-/// action on the right. Connecting is a pasted key (with an entry row below) or a browser
-/// sign-in, whichever the provider takes.
 struct AccountRow: View {
     @ObservedObject var account: Account
     @State private var entering = false
@@ -145,7 +142,6 @@ struct AccountRow: View {
     }
 }
 
-/// A provider's logo as a rounded tile (its initial if there's no logo).
 struct ProviderMark: View {
     let id: String
     let name: String

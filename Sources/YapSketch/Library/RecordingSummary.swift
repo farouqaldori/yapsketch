@@ -14,7 +14,6 @@ struct RecordingSummary: Identifiable, Hashable {
     /// Why its report couldn't be made (the recording is kept, to try again).
     var failure: String? = nil
 
-    /// The file in a recording's folder that says its report couldn't be made, and why.
     static let failureFile = "report-failed.txt"
 
     struct Point: Hashable {
@@ -27,7 +26,6 @@ struct RecordingSummary: Identifiable, Hashable {
     static func == (a: RecordingSummary, b: RecordingSummary) -> Bool { a.id == b.id }
     func hash(into h: inout Hasher) { h.combine(id) }
 
-    /// The words, without markers.
     var plainNarration: String {
         let words = narration.map(\.text).joined(separator: " ").trimmingCharacters(in: .whitespaces)
         return words.isEmpty ? "(No speech)" : words
@@ -59,7 +57,6 @@ struct RecordingSummary: Identifiable, Hashable {
         let lines = report.components(separatedBy: "\n")
         // "# Screen recording · 17 Oct 2026 at 03:51 · 00:13"
         let length = lines.first?.components(separatedBy: " · ").last ?? ""
-        // Where it was recorded, from the first app or window noted: the page's host, or the app.
         let place = ((try? String(contentsOf: dir.appendingPathComponent("events.jsonl"), encoding: .utf8)) ?? "")
             .split(separator: "\n").lazy
             .compactMap { try? JSONDecoder().decode(SessionEvent.self, from: Data($0.utf8)) }

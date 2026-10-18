@@ -38,8 +38,7 @@ fn last_sentence_end(s: &str) -> Option<usize> {
         .last()
 }
 
-/// Longest piece handed to the model in one run, in samples. Long recordings are
-/// cut at the quietest point near each boundary so words aren't split.
+/// Longest piece handed to the model in one run (cut at the quietest point near the boundary).
 const OFFLINE_WINDOW_MS: i64 = 120_000;
 
 fn offline(model_path: &str, out: &mut impl Write) -> i32 {
@@ -239,7 +238,6 @@ fn run(out: &mut impl Write) -> i32 {
         let mut received_ms: i64 = 0;
 
         loop {
-            // Read one chunk (or whatever is left before EOF).
             let mut filled = 0;
             while filled < bytes.len() {
                 match stdin.read(&mut bytes[filled..]) {

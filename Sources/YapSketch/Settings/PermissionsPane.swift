@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// Each permission, whether it's on, and a way to turn it on (the welcome's step for it).
 struct PermissionsPane: View {
     @State private var granted: Set<Permission> = []
 

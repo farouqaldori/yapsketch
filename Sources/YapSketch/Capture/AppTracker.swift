@@ -1,8 +1,6 @@
 import AppKit
 import ApplicationServices
 
-/// Tracks the frontmost app, its focused window title and (when exposed) the
-/// document URL or file path, e.g. the page open in Safari or the file in Xcode.
 final class AppTracker {
     struct Context: Equatable {
         var app: String

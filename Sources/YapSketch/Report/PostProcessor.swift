@@ -61,8 +61,7 @@ struct PostProcessor {
         writeJSON(transcript, to: dir.appendingPathComponent("transcript.json"))
         try? srt(transcript).write(to: dir.appendingPathComponent("transcript.srt"), atomically: true, encoding: .utf8)
 
-        // 2. Events (rewrite sorted, now that async AX lookups have landed), with the
-        //    moments the user pointed at something by circling the mouse.
+        // Events are rewritten sorted because async AX lookups land late.
         // Moving the mouse just before or after drawing is getting into position, not pointing.
         let drawingTimes = session.events.filter { $0.kind == .annotation || $0.kind == .textNote }
             .map { (($0.t0 ?? $0.t) - 2)...($0.t + 2) }
@@ -76,10 +75,7 @@ struct PostProcessor {
         }
         try? (lines.joined(separator: "\n") + "\n").write(to: session.eventsURL, atomically: true, encoding: .utf8)
 
-        // 3. Where the screenshots go: the points Jev divides the speech into, or the
-        //    transcript's own sentences without Jev, each with the marks Jev judged are for it
-        //    (drawn or circled with the pointer). A previous run's answers are kept where the
-        //    question is the same.
+        // A previous run's answers are kept where the question is the same.
         let words = transcript.flatMap { $0.words ?? [] }
         let app = events.last(where: { $0.kind == .appSwitch || $0.kind == .window })
         let marks = events.filter { [.annotation, .textNote, .gesture].contains($0.kind) }
@@ -104,8 +100,7 @@ struct PostProcessor {
                     marks, to: PointFinder.points(segments, saved: [previous?.segments ?? [], saved]), judged: analysis?.marks ?? []),
                 marks: marks, apart: analysis?.apart ?? [], words: words, splits: analysis?.splits ?? [])
 
-        // 4. Pictures: one per point, of the mark drawn for it or the moment that best shows it.
-        //    Small frames and screen changes were noted while recording.
+        // Small frames and screen changes were noted while recording.
         step("Taking screenshots…")
         let frameLog = FrameLog.load(from: dir)
         let shots = await pictures(

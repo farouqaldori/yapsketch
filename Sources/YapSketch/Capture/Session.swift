@@ -10,8 +10,7 @@ enum EventKind: String, Codable {
     case erase
     /// A JavaScript error in the browser tab (`text`).
     case console
-    /// The user circled or wiggled the mouse pointer over `bbox` from `t0` to `t`: pointing
-    /// at something (found afterwards from the pointer's path).
+    /// The user circled or wiggled the pointer over `bbox` from `t0` to `t`.
     case gesture
     /// The user scrolled (logged at most every 0.2 s while scrolling).
     case scroll
@@ -52,7 +51,6 @@ struct TranscriptSegment: Codable {
     var words: [TranscriptSegment]? = nil
 }
 
-/// Information about the display being recorded.
 struct DisplayInfo: Codable {
     let displayID: CGDirectDisplayID
     /// Size of the recorded area in points (the whole screen, or one window).
@@ -81,7 +79,6 @@ struct DisplayInfo: Codable {
     func contains(_ global: CGPoint) -> Bool { globalBounds.contains(global) }
 }
 
-/// A recording session: owns the output folder, the clock, and the event log.
 final class Session {
     let dir: URL
     let startedAt: Date
@@ -122,7 +119,6 @@ final class Session {
         logHandle = try? FileHandle(forWritingTo: dir.appendingPathComponent("events.jsonl"))
     }
 
-    /// Re-opens a saved recording's folder (to make its report again).
     init(existing dir: URL) throws {
         self.dir = dir
         let meta = try JSONDecoder().decode(Meta.self, from: Data(contentsOf: dir.appendingPathComponent("session.json")))
@@ -190,7 +186,6 @@ final class Session {
         lock.lock()
         defer { lock.unlock() }
         guard let first = _pointer.first else { return nil }
-        // Binary search: the last sample at or before t.
         var lo = 0
         var hi = _pointer.count - 1
         guard _pointer[0][0] <= t else { return CGPoint(x: first[1], y: first[2]) }
@@ -201,7 +196,6 @@ final class Session {
         return CGPoint(x: _pointer[lo][1], y: _pointer[lo][2])
     }
 
-    /// All pointer samples [t, x, y].
     var pointerSamples: [[Double]] {
         lock.lock()
         defer { lock.unlock() }

@@ -34,16 +34,12 @@ struct AnnotationInfo {
     let color: String
     let bbox: CGRect
     let text: String?
-    /// Where an arrow points.
     var tip: CGPoint? = nil
-    /// Which stroke it is, so the log can say when it fades.
     var id = 0
-    /// How long the stroke took, in seconds.
     var duration: Double = 0
 }
 
-/// Full-screen transparent canvas. Draws persistent annotations; accepts mouse
-/// input only while draw mode is on (the window ignores mouse events otherwise).
+/// Full-screen transparent canvas for the ink. Its window ignores mouse events outside draw mode.
 final class CanvasView: NSView, NSTextFieldDelegate {
     private enum Shape {
         case stroke([CGPoint], NSColor, CGFloat, CGFloat)  // points, color, width, alpha
@@ -54,7 +50,7 @@ final class CanvasView: NSView, NSTextFieldDelegate {
 
     var tool: DrawTool = .pen { didSet { onStateChange?() } }
     /// Scales every stroke (menu → Ink Size): 0.7 thin, 1 medium, 1.5 thick.
-    var inkSize: CGFloat = 0.7  // thin by default
+    var inkSize: CGFloat = 0.7
     private var penWidth: CGFloat { 3 * inkSize }  // ≈ 5.5 pt ink at medium (tldraw's medium pen)
     private var highlightWidth: CGFloat { 18 * inkSize }
     private var lineWidth: CGFloat { 3.5 * inkSize }  // arrows
@@ -71,10 +67,10 @@ final class CanvasView: NSView, NSTextFieldDelegate {
     var onStateChange: (() -> Void)?
 
     private var shapes: [Shape] = []
-    /// Each shape's id (parallel to `shapes`).
+    /// Parallel to `shapes`.
     private var ids: [Int] = []
     private var nextID = 1
-    /// When each shape disappears (parallel to `shapes`); nil = stays until cleared.
+    /// When each shape disappears, parallel to `shapes`. Nil stays until cleared.
     private var expiries: [CFTimeInterval?] = []
 
     /// Temporary ink: new strokes fade out on their own after `fadeAfter` seconds.
@@ -98,7 +94,6 @@ final class CanvasView: NSView, NSTextFieldDelegate {
     private let liveHead = CAShapeLayer()
     private(set) var isDragging = false
     var onStrokeEnded: (() -> Void)?
-    /// Accepting the mouse right now (draw mode); shows the crosshair.
     var interactive = false { didSet { window?.invalidateCursorRects(for: self) } }
 
     override init(frame: NSRect) {
@@ -191,8 +186,7 @@ final class CanvasView: NSView, NSTextFieldDelegate {
         }
     }
 
-    /// The ink outline for a freehand stroke (perfect-freehand, tldraw's stroke engine):
-    /// pressure simulated from speed, tapering and smoothing, filled rather than stroked.
+    /// The ink outline for a freehand stroke (perfect-freehand), filled rather than stroked.
     static func inkPath(_ points: [CGPoint], width: CGFloat, highlighter: Bool, finished: Bool) -> CGPath {
         highlighter
             ? PerfectFreehand.path(points, PerfectFreehand.highlighter(width: Double(width), last: finished))

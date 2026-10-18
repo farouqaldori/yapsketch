@@ -59,8 +59,7 @@ enum DevSnapshot {
         }
     }
 
-    /// `--snapshot-pills <dir>`: the recording toolbar, the status pill and the dictation pill
-    /// in each state, shown for a moment and captured over a desktop-ish gradient.
+    /// `--snapshot-pills <dir>`: the toolbar and pills in each state, over a desktop-ish gradient.
     @MainActor static func pills(to dir: URL) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         func shoot(_ panel: NSPanel, _ name: String) {
@@ -122,8 +121,7 @@ enum DevSnapshot {
         print(dir.path)
     }
 
-    /// `--snapshot-onboarding <dir>`: each page of the welcome, with made-up permissions,
-    /// and the card that sits beside System Settings.
+    /// `--snapshot-onboarding <dir>`: each page of the welcome, and the helper card.
     @MainActor static func onboarding(to dir: URL) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         func capture(_ w: NSWindow, _ name: String) {
@@ -240,9 +238,8 @@ enum DevSnapshot {
     }
 }
 
-/// Debug-only: `open YapSketch.app --args --test-speech in.m4a out.txt` pushes an audio
-/// file through AppleSpeech exactly like live mic buffers (run via `open` so the app's
-/// own Speech Recognition permission applies) and writes what it heard.
+/// Debug-only: `open YapSketch.app --args --test-speech in.m4a out.txt` feeds an audio file to
+/// live speech like mic buffers. Run via `open` so the app's Speech Recognition permission applies.
 enum DevSpeechTest {
     /// A one-shot debug command, so waiting on the async track load is fine here.
     private static func audioTracks(_ asset: AVURLAsset) -> [AVAssetTrack] {

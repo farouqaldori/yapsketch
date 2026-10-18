@@ -1,8 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Words as chips: type one and press Return (or a comma) to add it; ✕, or Backspace in the
-/// empty field, takes one away. Kept as one word per line in `text`.
+/// Words as chips, kept as one word per line in `text`.
 struct TokenField: View {
     @Binding var text: String
     var prompt = "Add a word"
@@ -47,7 +46,6 @@ struct TokenField: View {
         .overlay(Capsule().strokeBorder(.line))
     }
 
-    /// Each piece of `words` (split at commas) as a chip, once.
     private func add(_ words: String) {
         var all = tokens
         for w in words.split(separator: ",").map({ $0.trimmingCharacters(in: .whitespaces) }) where !w.isEmpty {
@@ -64,8 +62,6 @@ struct TokenField: View {
     }
 }
 
-/// The field at the end of the chips: plain text, no border. Return or a comma hands the word
-/// over; Backspace with nothing typed asks for the last chip to go.
 private struct TokenInput: NSViewRepresentable {
     @Binding var text: String
     @Binding var focus: Bool

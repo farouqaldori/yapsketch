@@ -1,14 +1,13 @@
 import CryptoKit
 import Foundation
 
-/// The speech models YapSketch offers, kept in its own folder. Each is a transcribe.cpp
-/// GGUF from the `handy-computer` repos on Hugging Face (the engine Handy uses), pinned to
-/// a commit and checked against its SHA-256, so a model never changes under the app.
+/// A transcribe.cpp GGUF from the `handy-computer` repos on Hugging Face, pinned to a
+/// commit and checked against its SHA-256 so a model never changes under the app.
 struct SpeechModel: Identifiable, Equatable {
     let id: String
     let name: String
     let detail: String
-    /// Streams, so it can do live captions (the helper's live mode needs it).
+    /// Streams, so it can do live captions.
     let live: Bool
     let repo: String
     let revision: String
@@ -113,7 +112,6 @@ final class ModelStore: NSObject, ObservableObject, URLSessionDownloadDelegate {
         return catalog.first { $0.file == f.lastPathComponent }
     }
 
-    /// Where a broken-off download keeps what it had, to pick up from.
     nonisolated private static func resumeFile(for m: SpeechModel) -> URL { folder.appendingPathComponent(m.file + ".resume") }
 
     func download(_ m: SpeechModel) {

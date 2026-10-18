@@ -2,9 +2,7 @@ import AppKit
 import Carbon
 import SwiftUI
 
-/// Click, then press the new keys: saved at once (esc cancels). Needs ⌃, ⌥ or ⌘, or fn on
-/// its own for Dictate; a shortcut another action has, or another app holds, is pointed out.
-/// As keycaps in a Settings row, or (given a `card` title) as a card on the welcome's last page.
+/// Needs ⌃, ⌥ or ⌘, or fn on its own for Dictate.
 struct ShortcutRecorder: View {
     let action: ShortcutAction
     var card: String?
@@ -55,7 +53,6 @@ struct ShortcutRecorder: View {
         }
     }
 
-    /// Keys over the action's name, "Change" under it; coral while waiting for new keys.
     private var cardBody: some View {
         Button(action: { listening ? stop() : start() }) {
             VStack(spacing: 10) {
@@ -120,7 +117,6 @@ struct ShortcutRecorder: View {
         }
     }
 
-    /// fn pressed and let go with no other key.
     private func fnChanged(_ e: NSEvent) {
         let f = e.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let isFn = e.keyCode == UInt16(kVK_Function) || e.keyCode == 179

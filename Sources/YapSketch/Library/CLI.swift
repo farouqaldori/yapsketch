@@ -118,7 +118,6 @@ enum CLI {
 
     private static func list(_ dirs: [URL], json: Bool) {
         let rows: [[String: String]] = dirs.map { dir in
-            // As History shows it: the length, and the words without their markers.
             let summary = RecordingSummary.load(dir)
             let start = summary?.plainNarration ?? ""
             return [

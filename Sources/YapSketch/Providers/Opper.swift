@@ -1,7 +1,5 @@
 import Foundation
 
-/// Opper (https://opper.ai): sign in with the device flow, pay from the Opper wallet. Jev,
-/// cloud speech models and a chat model for tidying up dictation.
 struct Opper: Provider {
     let id = "opper"
     let name = "Opper"
@@ -9,7 +7,7 @@ struct Opper: Provider {
 
     private static let api = "https://api.opper.ai"
 
-    /// The OAuth app's client ID (a public client): `OpperClientID` in Info.plist, or `OPPER_CLIENT_ID`.
+    /// A public client ID, not a secret.
     private static var clientID: String? {
         let id = ProcessInfo.processInfo.environment["OPPER_CLIENT_ID"] ?? (Bundle.main.object(forInfoDictionaryKey: "OpperClientID") as? String)
         return id.flatMap { $0.isEmpty ? nil : $0 }

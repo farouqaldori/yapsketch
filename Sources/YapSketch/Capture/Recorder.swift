@@ -134,8 +134,6 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, SCRecordingOut
         }
     }
 
-    // MARK: SCStreamOutput
-
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
         if type == .screen {
             if let handler = onScreenFrame, sampleBuffer.isValid, let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) {
@@ -148,16 +146,12 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, SCRecordingOut
         onMicBuffer?(sampleBuffer)
     }
 
-    // MARK: SCStreamDelegate
-
     func stream(_ stream: SCStream, didStopWithError error: Error) {
         Log.info("capture stopped: \(error.localizedDescription)")
         onError?(error)
         resumeFinish()
         if !stopping { DispatchQueue.main.async { self.onStoppedUnexpectedly?() } }
     }
-
-    // MARK: SCRecordingOutputDelegate
 
     func recordingOutputDidStartRecording(_ recordingOutput: SCRecordingOutput) {
         onStarted?()

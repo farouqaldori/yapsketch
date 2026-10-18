@@ -42,8 +42,7 @@ enum Filmstrip {
         guard let best, best.score >= (near == nil ? 8 : 4), let start = samples.first?.t, let end = samples.last?.t else { return nil }
         let within = changes.filter { $0.t >= best.from && $0.t < best.from + window }
         // One movement, start to end (a sidebar sliding, a menu opening): the biggest unbroken
-        // run of change in the stretch. Frames spread over the whole stretch fell before and
-        // after each movement and showed none of it.
+        // run of change in the stretch.
         let step = zip(samples, samples.dropFirst()).map { $1.t - $0.t }.min() ?? 0.125
         var runs: [[(t: Double, cells: [Int])]] = []
         for c in within {

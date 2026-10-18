@@ -2,14 +2,13 @@ import AVFoundation
 import Foundation
 import Speech
 
-/// Live on-device transcription of the microphone stream. Partial results drive
-/// the burned-in captions; final results become timestamped transcript segments.
+/// Live on-device transcription of the microphone stream.
 final class AppleSpeech {
-    /// Current caption text. Called on the main queue.
+    /// Called on the main queue.
     var onPartial: ((String) -> Void)?
-    /// A finished, timestamped piece of speech. Called on the main queue.
+    /// Called on the main queue.
     var onSegment: ((TranscriptSegment) -> Void)?
-    /// Live recognition can't work (e.g. Dictation is off). Called on the main queue.
+    /// Called on the main queue when live recognition can't work.
     var onUnavailable: ((String) -> Void)?
 
     private let recognizer: SFSpeechRecognizer?
@@ -27,8 +26,8 @@ final class AppleSpeech {
         recognizer = Self.makeRecognizer()
     }
 
-    /// Picks a recognizer for the user's preferred language. `Locale.current` can carry
-    /// region overrides (e.g. `en_US@rg=sezzzz`) that the recognizer doesn't understand.
+    /// Not `Locale.current`, which can carry region overrides (e.g. `en_US@rg=sezzzz`) that the
+    /// recognizer doesn't understand.
     private static func makeRecognizer() -> SFSpeechRecognizer? {
         let supported = SFSpeechRecognizer.supportedLocales()
         let wanted = Locale.preferredLanguages.map { Locale(identifier: $0) } + [Locale(identifier: "en-US")]
@@ -74,7 +73,7 @@ final class AppleSpeech {
         }
     }
 
-    /// Feed a microphone buffer. Safe to call from any queue.
+    /// Safe to call from any queue.
     func append(_ sb: CMSampleBuffer) {
         queue.async {
             guard self.running, let request = self.request else { return }
@@ -135,7 +134,6 @@ final class AppleSpeech {
         }
     }
 
-    /// Splits a transcription into sentence-ish segments using punctuation and pauses.
     static func split(_ t: SFTranscription, offset: Double) -> [TranscriptSegment] {
         var out: [TranscriptSegment] = []
         var words: [String] = []
@@ -158,7 +156,6 @@ final class AppleSpeech {
         }
         flush()
 
-        // No usable word timings: keep the whole thing as one segment.
         if out.isEmpty, !t.formattedString.isEmpty {
             out.append(TranscriptSegment(start: offset, end: offset, text: t.formattedString))
         }

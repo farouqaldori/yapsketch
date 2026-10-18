@@ -1,7 +1,7 @@
 import AVFoundation
 import AppKit
 
-/// The four permissions YapSketch needs, in the order the welcome asks for them.
+/// In the order the welcome asks for them.
 enum Permission: String, CaseIterable, Identifiable {
     case microphone, screenRecording, accessibility, inputMonitoring
     var id: String { rawValue }
@@ -15,7 +15,6 @@ enum Permission: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Why, in a few words.
     var purpose: String {
         switch self {
         case .microphone: "To hear what you say"

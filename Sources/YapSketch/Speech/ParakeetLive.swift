@@ -1,7 +1,6 @@
 import AVFoundation
 import Foundation
 
-/// Something that turns live mic audio into captions and transcript segments.
 protocol LiveTranscriber: AnyObject {
     var onPartial: ((String) -> Void)? { get set }
     var onSegment: ((TranscriptSegment) -> Void)? { get set }
@@ -23,8 +22,8 @@ extension AppleSpeech: LiveTranscriber {
     }
 }
 
-/// Live captions from a streaming transcribe.cpp model (the engine and models Handy
-/// uses, e.g. Parakeet Unified), run in the bundled `yapsketch-asr` helper process.
+/// Live captions from a streaming transcribe.cpp model, run in the bundled `yapsketch-asr`
+/// helper process.
 // @unchecked: its state changes on the main queue; audio is written on writeQueue.
 final class ParakeetLive: LiveTranscriber, @unchecked Sendable {
     var onPartial: ((String) -> Void)?
@@ -47,8 +46,8 @@ final class ParakeetLive: LiveTranscriber, @unchecked Sendable {
     private var lastUsed = Date()
     private var idleTimer: Timer?
 
-    /// Like Handy's `model_unload_timeout`: free the model's memory after this many idle
-    /// minutes (default 60, 0 = never). The next recording loads it again.
+    /// Frees the model's memory after this many idle minutes (0 = never). The next recording
+    /// loads it again.
     static var unloadAfterMinutes: Int {
         UserDefaults.standard.object(forKey: "modelUnloadMinutes") as? Int ?? 60
     }
@@ -65,8 +64,7 @@ final class ParakeetLive: LiveTranscriber, @unchecked Sendable {
         return candidates.first { FileManager.default.isExecutableFile(atPath: $0.path) }
     }
 
-    /// The speech model: an explicit `liveModelPath` (for development), else the one chosen
-    /// in Settings › Models (YapSketch's own folder).
+    /// `liveModelPath` overrides the model chosen in Settings, for development.
     static func findModel() -> URL? {
         if let custom = UserDefaults.standard.string(forKey: "liveModelPath"), !custom.isEmpty {
             let u = URL(fileURLWithPath: (custom as NSString).expandingTildeInPath)
@@ -83,8 +81,7 @@ final class ParakeetLive: LiveTranscriber, @unchecked Sendable {
     }
 
     /// Launches the helper ahead of time so the model is loaded (and its Metal kernels
-    /// compiled) before recording starts; otherwise the first seconds get no captions.
-    /// The idle helper just blocks waiting for audio.
+    /// compiled) before recording starts. Otherwise the first seconds get no captions.
     func prepare() {
         guard process == nil, let helper = Self.helperURL, let model = Self.liveModel else { return }
         ready = false
@@ -198,7 +195,7 @@ final class ParakeetLive: LiveTranscriber, @unchecked Sendable {
         }
     }
 
-    /// 16 kHz mono samples straight from the microphone (dictation).
+    /// 16 kHz mono samples (dictation).
     func append(samples: [Float]) {
         guard active, let stdin, !samples.isEmpty else { return }
         if audioStart == nil { audioStart = clock?() ?? 0 }

@@ -1,7 +1,5 @@
 import Foundation
 
-/// A point's picture: the marks the user made for it, or the moment that best shows it; for a
-/// point about something moving, a strip of frames.
 struct Screenshot {
     let n: Int
     /// When the point ends.

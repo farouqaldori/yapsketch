@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # Builds YapSketch.app into ./build and signs it.
 #
-# macOS ties privacy permissions (screen recording, mic, accessibility) to the
-# app's code signature. An ad-hoc signature changes on every build, which means
-# re-granting permissions each time, so we prefer a stable "Apple Development"
-# identity when one exists. Override with SIGN_IDENTITY="..." (or "-" for ad-hoc).
-# HARDENED=1 signs for distribution (hardened runtime, secure timestamp) and FEED_URL turns on
-# Sparkle updates; release.sh sets both. Dev builds have no feed and never check for updates.
+# macOS ties privacy permissions to the code signature, and an ad-hoc one changes on every
+# build, so a stable "Apple Development" identity is preferred when one exists.
+# Override with SIGN_IDENTITY="..." (or "-" for ad-hoc). HARDENED=1 signs for distribution
+# and FEED_URL turns on Sparkle updates (release.sh sets both).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -21,7 +19,7 @@ APP="$DEST.new"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/YapSketch"
-# Sparkle (auto-updates). ditto keeps the framework's symlinks.
+# ditto keeps Sparkle.framework's symlinks.
 mkdir -p "$APP/Contents/Frameworks"
 ditto "$(dirname "$BIN")/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.framework"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
@@ -29,13 +27,12 @@ if [[ -n "${FEED_URL:-}" ]]; then
     /usr/libexec/PlistBuddy -c "Add :SUFeedURL string $FEED_URL" "$APP/Contents/Info.plist"
 fi
 cp -R Resources/Providers "$APP/Contents/Resources/Providers"
-# Fraunces, Geist and Geist Mono (OFL), loaded by the app itself (Brand.registerFonts).
+# Loaded by the app itself (Brand.registerFonts).
 cp -R Resources/Fonts "$APP/Contents/Resources/Fonts"
 cp Resources/Icon/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Resources/Icon/icon-rounded.png "$APP/Contents/Resources/AppMark.png"
 
-# Live-caption helper (transcribe.cpp, the engine Handy uses). Optional: without it
-# YapSketch falls back to Apple's speech recognizer.
+# Live-caption helper. Optional: without it YapSketch falls back to Apple's speech recognizer.
 if command -v cargo >/dev/null; then
     cargo build --release --manifest-path asr-helper/Cargo.toml
     cp asr-helper/target/release/yapsketch-asr "$APP/Contents/MacOS/yapsketch-asr"

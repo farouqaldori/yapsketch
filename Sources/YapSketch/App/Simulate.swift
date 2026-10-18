@@ -1,8 +1,7 @@
 import Foundation
 
-/// For trying out how problems feel: one picked in the menu's Simulate a Problem (shown when
-/// `debugMenu` is on: `defaults write com.yapsketch.app debugMenu -bool true`) happens on the
-/// next recording, once, through the same path the real one takes.
+/// A problem picked in the menu's Simulate a Problem happens once, on the next recording, through
+/// the real path. The menu shows with `defaults write com.yapsketch.app debugMenu -bool true`.
 enum Simulate: String, CaseIterable {
     case noScreenRecording, noMicrophone, lowSpace, cantStart, slowStart
     case stopsEarly, slowReport, noReport, quitWhileProcessing

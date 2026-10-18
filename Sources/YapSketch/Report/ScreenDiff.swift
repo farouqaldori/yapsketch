@@ -5,7 +5,6 @@ import Foundation
 enum ScreenDiff {
     static let cols = 32, rows = 20
 
-    /// Small grayscale frame.
     struct Gray {
         let px: [UInt8], w: Int, h: Int
 

@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// Recordings and dictations in one list, newest first, by day; each opens its own detail.
 struct HistoryPane: View {
     /// An item to select when History next loads ("r:" + a recording's folder name).
     @MainActor static var reveal: String?
@@ -141,7 +140,6 @@ struct HistoryPane: View {
                     .sorted { $0.date > $1.date }
                 return (all, HistoryPane.grouped(all))
             }.value
-            // Looking at the newest when a newer one arrives: show the new one.
             let onNewest = selection == items.first?.id
             items = all
             groups = grouped
@@ -189,7 +187,6 @@ struct HistoryPane: View {
     }
 }
 
-/// A recording or a dictation, as History lists them.
 private enum HistoryItem: Identifiable, Equatable {
     case recording(RecordingSummary)
     case dictation(DictationHistory.Entry)
@@ -211,7 +208,6 @@ private enum HistoryItem: Identifiable, Equatable {
     var isRecording: Bool { if case .recording = self { true } else { false } }
 }
 
-/// What a History item is: a coral record dot, or a microphone.
 private struct KindIcon: View {
     let recording: Bool
     var body: some View {
@@ -227,8 +223,6 @@ private struct KindIcon: View {
     }
 }
 
-/// A row in History's list: what it is, when and where (its id or length on the right), then
-/// the words. Chosen: a white card ringed in ink.
 private struct ListRow: View {
     let item: HistoryItem
     let selected: Bool
@@ -275,9 +269,6 @@ private struct ListRow: View {
 
 private func clock(_ seconds: Double) -> String { String(format: "%d:%02d", Int(seconds) / 60, Int(seconds) % 60) }
 
-/// A detail's top: what it is, its id and its name (cut short if need be) with the actions
-/// pinned top right, on the window's header line; when and how long on the line under it.
-/// The same for recordings and dictations, however long the name.
 private struct DetailHeader<Actions: View>: View {
     let recording: Bool
     let chip: String
@@ -308,7 +299,6 @@ private struct DetailHeader<Actions: View>: View {
     }
 }
 
-/// A dictation: the text (selectable), what was heard before cleanup, Copy, the audio.
 private struct DictationDetail: View {
     let entry: DictationHistory.Entry
     @State private var copied = false
@@ -320,8 +310,7 @@ private struct DictationDetail: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 DetailHeader(
-                    // The chip is what the row shows on its right (a recording's id, a dictation's
-                    // length); when it was goes with the date, so it can't pass for a length.
+                    // When it was goes with the date, so it can't pass for a length.
                     recording: false, chip: clock(e.duration), title: "Dictation",
                     details: "\(e.date.formatted(.dateTime.month(.abbreviated).day().hour().minute())) · \(e.model)"
                 ) {
@@ -343,7 +332,6 @@ private struct DictationDetail: View {
                     .disabled(e.text.isEmpty)
                 }
                 if e.text.isEmpty, let failure = e.failure {
-                    // Kept because the provider failed: the audio's here, to try again.
                     Banner(text: "\(failure). The audio is saved.", good: false) {
                         if retrying {
                             ProgressView().controlSize(.small)
@@ -389,7 +377,6 @@ private struct DictationDetail: View {
 
 private struct RecordingDetail: View {
     let item: RecordingSummary
-    /// The point whose picture is expanded over History.
     @Binding var expanded: RecordingSummary.Point?
     @State private var copied = false
     @State private var retrying = false
@@ -407,7 +394,6 @@ private struct RecordingDetail: View {
                         .disabled(item.failure != nil)
                 }
                 if let failure = item.failure {
-                    // Kept so the report can be made again (the video and audio are here).
                     Banner(text: "\(failure). The recording is saved.", good: false) {
                         if retrying {
                             ProgressView().controlSize(.small)
@@ -461,7 +447,7 @@ private struct PointCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // A fixed 16:10 frame, the picture fitted inside: every card the same shape.
+            // A fixed 16:10 frame, so every card is the same shape.
             Color.panel
                 .aspectRatio(16 / 10, contentMode: .fit)
                 .overlay {
@@ -481,7 +467,6 @@ private struct PointCard: View {
     }
 }
 
-/// A point's picture, large, over the recording: Esc or a click outside to close.
 private struct Lightbox: View {
     let point: RecordingSummary.Point
     let close: () -> Void
@@ -524,7 +509,6 @@ private struct Lightbox: View {
     }
 }
 
-/// A picture from disk, scaled to `maxPixels` off the main thread (cached), fitted.
 private struct LoadedImage: View {
     let url: URL
     let maxPixels: Int

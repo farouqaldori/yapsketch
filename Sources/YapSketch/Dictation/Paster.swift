@@ -1,15 +1,14 @@
 import AppKit
 import Carbon
 
-/// Puts text into the app in front, as if typed: through the clipboard and ⌘V (the way
-/// Handy does it), then gives the clipboard back. Posting ⌘V needs Accessibility.
+/// Puts text into the front app through the clipboard and ⌘V, then gives the clipboard back.
+/// Posting ⌘V needs Accessibility.
 enum Paster {
-    /// After dictating: paste and restore the clipboard, paste and leave the text on it, or
-    /// only copy.
+    /// Paste and restore the clipboard, paste and leave the text on it, or only copy.
     enum Mode: String, CaseIterable { case paste, pasteAndKeep, copy }
 
     static var mode: Mode { UserDefaults.standard.string(forKey: "pasteMode").flatMap(Mode.init) ?? .paste }
-    /// Press Return after pasting (sends a message in a chat or an agent's prompt).
+    /// Press Return after pasting.
     static var submit: Bool { UserDefaults.standard.bool(forKey: "pasteSubmit") }
 
     @MainActor
@@ -20,7 +19,6 @@ enum Paster {
             pb.setString(text, forType: .string)
             return
         }
-        // Everything on the clipboard now, every type, to put back afterwards.
         let saved: [[NSPasteboard.PasteboardType: Data]] = (pb.pasteboardItems ?? []).map { item in
             var types: [NSPasteboard.PasteboardType: Data] = [:]
             for t in item.types { if let d = item.data(forType: t) { types[t] = d } }

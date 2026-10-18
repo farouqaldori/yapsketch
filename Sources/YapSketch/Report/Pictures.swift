@@ -5,12 +5,8 @@ import UniformTypeIdentifiers
 
 extension PostProcessor {
     /// One picture per point, at the display's point size so event coordinates map 1:1 onto
-    /// pixels. A point with marks (Jev's judgment of what was drawn or circled for it): the screen
-    /// most of its drawings are on, just after they were drawn or as late in the point as the
-    /// screen stays the same, pointer circles lit and faded ink put back. Pointing only: the screen
-    /// pointed at most. Else the moment that best shows the point (Jev's pick among a few frames,
-    /// else its end). A point about something moving gets a strip of frames instead. Numbered in
-    /// reading order, each with its number stamped next to its marks (in the corner without).
+    /// pixels. A point with marks shows the screen most of them are on, with faded ink put back.
+    /// One without marks shows Jev's pick of moment. One about motion gets a strip of frames.
     func pictures(
         asset: AVURLAsset, points: [SegmentAnalysis], events: [SessionEvent], duration: Double,
         words: [TranscriptSegment], frames: FrameLog?, previous: [SegmentAnalysis]
@@ -43,7 +39,6 @@ extension PostProcessor {
         func gone(_ m: SessionEvent, _ e: SessionEvent) -> Bool {
             e.t > m.t && (e.kind == .clear || (e.kind == .erase && e.id == m.id))
         }
-        /// Still on screen at `t`: drawn by then and not cleared or faded since.
         func visible(_ m: SessionEvent, at t: Double) -> Bool {
             guard m.kind != .gesture, m.t <= t + 0.05 else { return false }
             return !events.contains { e in e.t <= t && gone(m, e) }
@@ -85,7 +80,6 @@ extension PostProcessor {
             let image: CGImage
         }
 
-        /// One screen's marks as a picture.
         func picture(_ group: [SessionEvent], end: Double, isLast: Bool) async -> Still? {
             let drawings = group.filter { $0.kind != .gesture }
             var times = drawings.map(shown)
@@ -232,8 +226,7 @@ extension PostProcessor {
             stills[u.key] = Still(t: c.t, image: image)
         }
 
-        // Numbered in reading order. The number in the text and on the picture are this one.
-        // A point about something moving shows a strip of frames instead of its still.
+        // Numbered in reading order, so the number in the text matches the one on the picture.
         var n = 0
         var out: [Int: Screenshot] = [:]
         for k in points.indices {

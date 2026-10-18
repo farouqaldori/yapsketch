@@ -1,11 +1,10 @@
 import Foundation
 
-/// Collects JavaScript errors from the page being shown in Chrome, through the DevTools
-/// protocol. Only works when Chrome runs with remote debugging on, e.g.
+/// JavaScript errors from Chrome, through the DevTools protocol. Needs Chrome started with
+/// remote debugging on, e.g.
 ///   open -a "Google Chrome" --args --remote-debugging-port=9222 --user-data-dir=/tmp/yapsketch-chrome
-/// and stays silent otherwise.
 final class ConsoleMonitor {
-    /// (message) on the main queue.
+    /// Main queue.
     var onError: ((String) -> Void)?
     private var socket: URLSessionWebSocketTask?
     private var nextID = 1

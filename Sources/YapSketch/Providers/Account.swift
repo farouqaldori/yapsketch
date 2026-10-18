@@ -1,9 +1,8 @@
 import AppKit
 import Foundation
 
-/// What's kept per provider: its key (`<ID>_API_KEY`, else the Keychain item
-/// `com.yapsketch.<id>`, read once and then from memory), who signed in, and what its last
-/// response said about the account.
+/// A key comes from `<ID>_API_KEY`, else the Keychain item `com.yapsketch.<id>` (cached after
+/// the first read).
 enum Credentials {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var cache: [String: String?] = [:]
@@ -34,7 +33,7 @@ enum Credentials {
         UserDefaults.standard.string(forKey: "\(id)Problem").map { $0 == "disconnected" ? .disconnected : .outOfFunds }
     }
 
-    /// What a response's status says: 401, the key was revoked; 402, the account is out of funds.
+    /// 401 means the key was revoked, 402 that the account is out of funds.
     static func note(status: Int, for id: String) {
         switch status {
         case 401: set(.disconnected, for: id)
@@ -43,7 +42,7 @@ enum Credentials {
         }
     }
 
-    /// A real answer came back (not just a 200): whatever was wrong with the account isn't.
+    /// Call after a real answer, not just a 200.
     static func noteWorking(_ id: String) { set(nil, for: id) }
 
     private static func set(_ new: AccountProblem?, for id: String) {
@@ -55,8 +54,6 @@ enum Credentials {
 
 enum AccountProblem { case disconnected, outOfFunds }
 
-/// One provider's account, for Settings: connecting (a pasted key or a browser sign-in),
-/// its state, and disconnecting.
 @MainActor
 final class Account: ObservableObject, Identifiable {
     enum State: Equatable {
@@ -87,7 +84,6 @@ final class Account: ObservableObject, Identifiable {
         state = provider.isConnected ? .connected(user: Credentials.user(for: id)) : .off
     }
 
-    /// Browser sign-in; the page and code show in Settings while waiting.
     func signIn() {
         guard case .browser(let run) = provider.connect else { return }
         task?.cancel()
@@ -112,8 +108,7 @@ final class Account: ObservableObject, Identifiable {
         }
     }
 
-    /// A pasted key: kept if the provider's check accepts it (a working key on an empty
-    /// account too, marked out of funds).
+    /// A working key on an empty account is saved too, marked out of funds.
     func save(key: String) async -> KeyCheck {
         guard case .apiKey(_, let check) = provider.connect else { return .rejected }
         let key = key.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -145,7 +140,6 @@ final class Accounts {
     let all: [Account] = Providers.all.map(Account.init)
 }
 
-/// A provider's key in the Keychain (account `api-key`).
 enum Keychain {
     static func read(_ service: String) -> String? {
         let query: [String: Any] = [
@@ -171,14 +165,13 @@ enum Keychain {
     }
 }
 
-/// Each provider's own mark, from its website (Resources/Providers/<id>.png).
 enum ProviderLogo {
     static func image(_ id: String) -> NSImage? {
         if let url = Bundle.main.url(forResource: id, withExtension: "png", subdirectory: "Providers") {
             return NSImage(contentsOf: url)
         }
         #if DEBUG
-        // Run from .build (no app bundle): straight from the repo.
+        // Run from .build with no app bundle.
         var repo = URL(fileURLWithPath: #filePath)
         while repo.path != "/", !FileManager.default.fileExists(atPath: repo.appendingPathComponent("Package.swift").path) {
             repo.deleteLastPathComponent()
@@ -189,7 +182,6 @@ enum ProviderLogo {
         #endif
     }
 
-    /// The logo at menu size (16 pt, rounded).
     static func menuIcon(_ id: String) -> NSImage {
         NSImage(size: NSSize(width: 16, height: 16), flipped: false) { rect in
             NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).addClip()

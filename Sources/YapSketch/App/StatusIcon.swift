@@ -1,7 +1,6 @@
 import AppKit
 
-/// The app icon's mark for the menu bar, as a template image: the record dot, and the ribbon of
-/// ink that wraps it and trails off into a squiggle (the same curve scripts/icon.py draws).
+/// The app icon's mark as a menu bar template image (the same curve scripts/icon.py draws).
 enum StatusIcon {
     static let image: NSImage = {
         let size = NSSize(width: 20, height: 16)

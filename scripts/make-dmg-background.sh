@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Renders Resources/Installer/background.svg into background.tiff, the dmg window's background
-# (scripts/release.sh), at 1× and 2× for Retina. Needs rsvg-convert; fetches Fraunces and Geist
-# into build/fonts and renders with only those, Fraunces at its 26 pt optical size.
+# Renders Resources/Installer/background.svg into background.tiff (1× and 2×) for the dmg.
+# Needs rsvg-convert. Fraunces renders at its 26 pt optical size.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 fonts="$PWD/build/fonts"

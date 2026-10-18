@@ -1,6 +1,5 @@
 import Foundation
 
-/// TypeSafe (https://typesafe.ai), Jev's maker: your own API key, Jev directly.
 struct TypeSafe: Provider {
     let id = "typesafe"
     let name = "TypeSafe"

@@ -7,14 +7,12 @@ signal(SIGPIPE, SIG_IGN)
 
 let args = CommandLine.arguments
 
-// `yapsketch latest` and friends: the recordings on the command line, for coding agents.
-// (Run through the `yapsketch` wrapper, it's always the command line: help by default.)
+// The command line, which is all the `yapsketch` wrapper ever runs.
 if ProcessInfo.processInfo.environment["YAPSKETCH_CLI"] != nil || (args.count > 1 && CLI.commands.contains(args[1])) {
     CLI.run(Array(args.dropFirst()))
 }
 #if DEBUG
 if args.contains("--test-oauth-callback") {
-    // A browser sign-in's local callback: prints its port, then what the browser brought.
     Task {
         do {
             let cb = try await LoopbackPKCE.Callback.start()
@@ -43,7 +41,7 @@ if let i = args.firstIndex(of: "--snapshot-settings"), i + 2 < args.count {
     MainActor.assumeIsolated {
         let nav = SettingsWindow.shared
         nav.pane = SettingsPane(rawValue: args[i + 1]) ?? .general
-        // YAPSKETCH_SNAPSHOT_SIZE=760x520: another size (e.g. the narrowest the window allows).
+        // YAPSKETCH_SNAPSHOT_SIZE=760x520 picks another size.
         let wh = ProcessInfo.processInfo.environment["YAPSKETCH_SNAPSHOT_SIZE"]?.split(separator: "x").compactMap { Double($0) }
         let size = wh?.count == 2 ? CGSize(width: wh![0], height: wh![1]) : CGSize(width: 1120, height: 780)
         let w = nav.makeWindow(size: size)

@@ -1,10 +1,8 @@
 import Foundation
 
-/// What happens to a transcript before it's used, for dictation and recordings alike: your
-/// own words put right (names, jargon a model mishears), and "um"s taken out. Local and
-/// instant; the optional AI cleanup (dictation only) is separate.
+/// Local cleanup. The optional AI cleanup (dictation only) is separate.
 enum TextCleanup {
-    /// Your words, one per line (Settings › Dictation).
+    /// One per line.
     static var customWords: [String] {
         (UserDefaults.standard.string(forKey: "customWords") ?? "")
             .split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
@@ -14,7 +12,6 @@ enum TextCleanup {
 
     static let fillers: Set<String> = ["um", "uh", "uhm", "umm", "uhh", "erm", "er", "ah", "hmm", "mm", "mhm"]
 
-    /// A whole text: fillers out, custom words in, spacing and the first letter tidied.
     static func apply(_ text: String) -> String {
         var tokens = text.split(separator: " ", omittingEmptySubsequences: true).map {
             TranscriptSegment(start: 0, end: 0, text: String($0))
@@ -23,7 +20,7 @@ enum TextCleanup {
         return correct(tokens).map(\.text).joined(separator: " ")
     }
 
-    /// A recording's transcript: the same, word by word, keeping each word's timing.
+    /// Word by word, keeping each word's timing.
     static func apply(_ segments: [TranscriptSegment]) -> [TranscriptSegment] {
         let words = customWords
         guard removeFillers || !words.isEmpty else { return segments }
@@ -65,13 +62,12 @@ enum TextCleanup {
         return out
     }
 
-    /// "Um," → filler (the punctuation around it doesn't matter).
     static func isFiller(_ token: String) -> Bool {
         fillers.contains(token.lowercased().trimmingCharacters(in: .punctuationCharacters))
     }
 
     /// Each custom word (or phrase) replaces runs of words that sound and look like it:
-    /// close in spelling (edit distance within 18% of its length, as Handy does) or, when
+    /// close in spelling (edit distance within 18% of its length) or, when
     /// they sound the same (Soundex), within 34%. A run becomes one word spanning its time.
     static func correct(_ words: [TranscriptSegment]) -> [TranscriptSegment] {
         let custom = customWords
@@ -90,7 +86,6 @@ enum TextCleanup {
                     let alreadyThere = run.contains { normalize($0.text) == normalize(phrase) }
                     // A split word must be spelled close; the sounds-alike rule is for same-size runs.
                     if !alreadyThere, close(joined, target, soundsAlike: size == n), let first = run.first, let last = run.last {
-                        // Keep the punctuation around the run.
                         let lead = String(first.text.prefix { $0.isPunctuation })
                         let trail = String(last.text.reversed().prefix { $0.isPunctuation }.reversed())
                         let merged = TranscriptSegment(start: first.start, end: last.end, text: lead + phrase + trail)
@@ -154,7 +149,6 @@ enum TextCleanup {
 
     // MARK: AI cleanup (dictation)
 
-    /// The connected provider chosen to tidy dictations (one with a chat model), or nil.
     static var aiProvider: (any Provider)? {
         Providers.named(UserDefaults.standard.string(forKey: "dictationCleanup")).flatMap { $0.chat != nil && $0.isConnected ? $0 : nil }
     }
@@ -165,7 +159,6 @@ enum TextCleanup {
         tone; don't add, summarize or answer anything. Reply with only the cleaned text.
         """
 
-    /// The text tidied by the provider's chat model; nil if it fails.
     static func aiClean(_ text: String) async -> String? {
         guard let provider = aiProvider, let chat = provider.chat, let key = provider.key, !text.isEmpty else { return nil }
         let body: [String: Any] = [

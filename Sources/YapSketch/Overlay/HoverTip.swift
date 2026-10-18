@@ -2,7 +2,7 @@ import AppKit
 
 /// A tooltip for the toolbar and the status pill. macOS shows tooltips only in the active
 /// app's windows, and those panels never take focus from the app being recorded, so they
-/// draw their own: a small label above the control after a short hover.
+/// draw their own.
 final class HoverTip {
     static let shared = HoverTip()
 
@@ -34,8 +34,7 @@ final class HoverTip {
         panel.contentView = box
     }
 
-    /// Shows `text` above `view` after a short hover; at once if a tip is already showing
-    /// (moving along the toolbar, the tip follows).
+    /// Shows `text` above `view` after a short hover, or at once if a tip is already showing.
     func schedule(_ text: String?, for view: NSView) {
         work?.cancel()
         hideWork?.cancel()
@@ -55,7 +54,7 @@ final class HoverTip {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.45, execute: w)
     }
 
-    /// Leaving a control: gone after a moment (long enough to reach the next one).
+    /// Hides the tip after a moment, long enough to reach the next control.
     func leave() {
         work?.cancel()
         hideWork?.cancel()

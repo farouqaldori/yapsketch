@@ -9,9 +9,8 @@ final class OverlayWindow: NSPanel {
     override var canBecomeMain: Bool { false }
 }
 
-/// The transparent always-on-top layer over the recorded display: ink, click ripples and
-/// keycast. It's captured with the screen, so these end up in the video
-/// and the screenshots. Controls and the timer live in the mini player, which isn't.
+/// The always-on-top layer over the recorded display (ink, click ripples, keycast). It's
+/// captured with the screen, so these end up in the video and the screenshots.
 final class OverlayController {
     let canvas: CanvasView
     private let window: OverlayWindow
@@ -70,15 +69,11 @@ final class OverlayController {
 
     private var size: CGSize { root.bounds.size }
 
-    // MARK: Visibility
-
     private func updateVisibility() {
         let visible = isRecording || drawMode || canvas.hasContent
         if visible { window.orderFrontRegardless() } else { window.orderOut(nil) }
         layout()
     }
-
-    // MARK: Keycast, ripples
 
     func showKeycast(_ text: String) {
         guard isRecording else { return }
@@ -122,7 +117,7 @@ final class OverlayController {
         CATransaction.commit()
     }
 
-    /// Brief flash in the corner, e.g. when live words aren't available.
+    /// Brief flash in the corner.
     func flash(_ text: String) {
         keycast.text = text
         keycast.isHidden = false
@@ -132,8 +127,6 @@ final class OverlayController {
         keycastHide = w
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5, execute: w)
     }
-
-    // MARK: Draw mode
 
     func setDrawMode(_ on: Bool) {
         guard on != sticky else { return }
@@ -178,8 +171,6 @@ final class OverlayController {
         updateVisibility()
     }
 
-    // MARK: Layout
-
     private func layout() {
         let margin: CGFloat = 16
         keycast.sizeToFitContent(maxWidth: 600)
@@ -187,7 +178,7 @@ final class OverlayController {
     }
 }
 
-/// Rounded label with a translucent background. Draws its own text so sizing is exact.
+/// Draws its own text so sizing is exact.
 final class Pill: NSView {
     var fill = NSColor.black.withAlphaComponent(0.75) { didSet { needsDisplay = true } }
     var maxLines = 1

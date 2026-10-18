@@ -1,11 +1,9 @@
 import AppKit
 import QuartzCore
 
-/// How the floating panels come and go: in, a short fade with a small lift; out, a fade and a
-/// small drop, like macOS's own HUDs. Safe to call again and again: showing a panel that's on
-/// its way out brings it straight back. Main thread only, like the panels.
+/// Show and hide animations for the floating panels, like macOS's own HUDs. Showing a panel
+/// that's on its way out brings it straight back. Main thread only.
 enum PanelMotion {
-    /// Quick to start, soft to land.
     static let easeOut = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.25, 1)
     static let easeIn = CAMediaTimingFunction(controlPoints: 0.4, 0, 1, 1)
 

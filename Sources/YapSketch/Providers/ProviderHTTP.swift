@@ -1,11 +1,9 @@
 import Foundation
 
-/// What went wrong with a provider, in words a person can act on.
 enum ProviderTrouble: Equatable, Sendable {
     case offline, outOfFunds, revoked, busy
     case server(Int)
 
-    /// "Opper is out of credits", for a pill or a report's note.
     func sentence(_ name: String) -> String {
         switch self {
         case .offline: "Couldn't reach \(name)"
@@ -27,9 +25,8 @@ enum ProviderTrouble: Equatable, Sendable {
     }
 }
 
-/// Work that gives up after `seconds` (a stalled connection otherwise waits for each idle
-/// timeout in turn): its result, or nil. Returns on time even if the work ignores being
-/// cancelled (it's left to finish on its own).
+/// Gives up after `seconds` with nil, even if the work ignores cancellation. A stalled
+/// connection would otherwise wait for each idle timeout in turn.
 enum Deadline {
     static func run<T: Sendable>(_ seconds: Double, _ work: @escaping @Sendable () async -> T?) async -> T? {
         let task = Task { await work() }
@@ -60,14 +57,12 @@ enum Deadline {
     }
 }
 
-/// Requests to a provider: its key and headers on each, and every answer noted on its
-/// account (so a revoked key or an empty wallet shows in Settings), and each failure kept so
-/// the work that hit it can say so.
+/// Requests to a provider. Every answer is noted on its account, so a revoked key or an empty
+/// wallet shows in Settings. Each failure is kept so the work that hit it can say so.
 enum ProviderHTTP {
     private static let lock = NSLock()
     nonisolated(unsafe) private static var troubles: [String: (ProviderTrouble, Date)] = [:]
 
-    /// The last thing that went wrong with `providerID` after `since`, if anything did.
     static func trouble(for providerID: String, since: Date) -> ProviderTrouble? {
         lock.lock()
         defer { lock.unlock() }
@@ -103,7 +98,7 @@ enum ProviderHTTP {
         return (data, status)
     }
 
-    /// A JSON POST; the JSON answer when it succeeds, else nil (and the reason logged).
+    /// nil unless it succeeds (the reason is logged).
     static func post(_ provider: any Provider, _ url: URL, key: String, json: [String: Any],
                      timeout: TimeInterval = 60) async -> [String: Any]? {
         guard let body = try? JSONSerialization.data(withJSONObject: json),

@@ -1,10 +1,8 @@
 import AppKit
 
-/// A point's number on its picture: a coral badge next to its marks (in the corner when it has
-/// none), stamped from the same number as its [n] in the text.
+/// A point's number on its picture: a coral badge next to its marks, or in the corner.
 enum Badges {
     static let radius = 14.0
-    /// Where the badge goes on a picture without marks.
     static let corner = CGPoint(x: radius + 10, y: radius + 10)
 
     /// Where a picture's badges go, in screen points: at the top left of each group of its marks

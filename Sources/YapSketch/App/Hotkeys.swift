@@ -10,7 +10,6 @@ final class Hotkeys {
     }
 
     private var handlers: [UInt32: () -> Void] = [:]
-    /// For hold-to-talk: called when the keys are let go.
     private var releaseHandlers: [UInt32: () -> Void] = [:]
     private var refsByID: [UInt32: EventHotKeyRef] = [:]
     private var refs: [EventHotKeyRef] = []
@@ -70,7 +69,6 @@ final class Hotkeys {
         releaseHandlers[id] = nil
     }
 
-    /// Drops every hotkey (before registering the changed ones).
     func unregisterAll() {
         for ref in refs { UnregisterEventHotKey(ref) }
         refs.removeAll()

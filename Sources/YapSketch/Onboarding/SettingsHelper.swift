@@ -1,9 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// The small card that sits beside System Settings while it's open at a permission's list:
-/// YapSketch to drag in, and what to do then. It follows the window, steps aside while
-/// another app is in front, and closes once the switch is on (Onboarding hides it).
+/// The card beside System Settings while it's open at a permission's list.
 @MainActor
 final class SettingsHelper {
     private var panel: NSPanel?
@@ -46,8 +44,6 @@ final class SettingsHelper {
         return p
     }
 
-    /// Beside System Settings' window (right if there's room, else left), shown only while it
-    /// or YapSketch is in front.
     private func follow() {
         guard let panel else { return }
         let front = NSWorkspace.shared.frontmostApplication?.bundleIdentifier
@@ -67,9 +63,8 @@ final class SettingsHelper {
         panel.orderFrontRegardless()
     }
 
-    /// System Settings' main window, in screen coordinates (its bounds are readable without
-    /// Screen Recording; only titles aren't). The largest of its windows: a password sheet in
-    /// front of it is a window of its own, and the card stays with the main one.
+    /// System Settings' main window in Cocoa screen coordinates. Its bounds are readable without
+    /// Screen Recording. The largest window wins, since a password sheet is a window of its own.
     private static func settingsWindowFrame() -> CGRect? {
         guard let pid = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.systempreferences").first?.processIdentifier,
             let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]],
@@ -87,7 +82,6 @@ final class SettingsHelper {
     }
 }
 
-/// "Drag me into the list.", the app to drag, then switch it on.
 struct HelperCard: View {
     let label: String
 

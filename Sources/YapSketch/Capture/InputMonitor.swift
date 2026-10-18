@@ -2,9 +2,8 @@ import AppKit
 import ApplicationServices
 import Carbon
 
-/// Listens (passively) to clicks and keystrokes system-wide so the report can say
-/// "clicked button 'Save'" or "typed 'hello'". Needs Accessibility / Input Monitoring;
-/// degrades to nothing if not granted.
+/// Listens passively to clicks and keystrokes system-wide. Needs Accessibility and Input
+/// Monitoring, and does nothing without them.
 final class InputMonitor {
     struct Click {
         let t: Double
@@ -13,7 +12,6 @@ final class InputMonitor {
     }
 
     var clock: () -> Double = { 0 }
-    /// Return true to ignore input (e.g. while the user is drawing on the overlay).
     var isSuppressed: () -> Bool = { false }
     var logKeystrokes = true
 
@@ -24,10 +22,10 @@ final class InputMonitor {
     /// Scrolling, at most every 0.2 s (so motion strips can tell scrolling from animation).
     var onScroll: ((Double) -> Void)?
     private var lastScroll = -1.0
-    /// Main queue. Typed text runs and shortcuts, for the log.
+    /// Main queue. Typed text runs and shortcuts.
     var onKeys: ((Double, String) -> Void)?
     var onShortcut: ((Double, String) -> Void)?
-    /// Main queue. Short label for the on-screen keycast.
+    /// Main queue.
     var onKeycast: ((String) -> Void)?
 
     private var tap: CFMachPort?
@@ -110,8 +108,6 @@ final class InputMonitor {
         }
     }
 
-    // MARK: Keys
-
     private static let specialKeys: [Int64: String] = [
         36: "↩", 76: "↩", 48: "⇥", 51: "⌫", 117: "⌦", 53: "⎋", 49: "␣",
         123: "←", 124: "→", 125: "↓", 126: "↑",
@@ -185,8 +181,6 @@ final class InputMonitor {
         typed = ""
         DispatchQueue.main.async { self.onKeys?(t, text) }
     }
-
-    // MARK: Accessibility
 
     /// The app whose window is under a point, looking through our ink and panels; nil when
     /// it's one of our own windows. Accessibility must never be asked about this app: it

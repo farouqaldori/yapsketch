@@ -7,12 +7,9 @@ struct SegmentAnalysis: Codable {
     let start: Double
     let end: Double
     let text: String
-    /// Probability the point refers to something on screen a developer needs to see.
     var needsScreenshot: Double?
     /// The drawn marks and pointer circles it's about (when each ended, their `t`).
     var marks: [Double]?
-    /// Probability the point is about something moving or changing over time, which a still
-    /// picture can't show.
     var motion: Double?
     /// Its marker in the report ([n], and shots/<n>.jpg), when it has a picture.
     var n: Int?
@@ -39,7 +36,6 @@ struct PairJudgment: Codable {
     /// The marks (when each ended).
     let a: Double
     let b: Double
-    /// Probability they're about different issues or requests.
     let apart: Double
 }
 
@@ -52,7 +48,6 @@ struct SessionAnalysis: Codable {
     var marked: [Double]?
     /// Which point each mark is for, as Jev judged (for these `segments`).
     var marks: [MarkJudgment]?
-    /// Whether marks Jev put in one point show different issues.
     var apart: [PairJudgment]?
     /// The points the report numbers: `segments`, each with its marks.
     var points: [SegmentAnalysis]?
@@ -60,13 +55,11 @@ struct SessionAnalysis: Codable {
     var inputTokens = 0
 }
 
-/// Groups transcript phrases into points (Jev judges where one issue ends and the next
-/// begins), asks which point each drawn mark and pointer circle is for, and which points need
-/// a picture and which are about something moving.
+/// Groups transcript phrases into points, then asks Jev which point each mark is for and
+/// which points need a picture or are about something moving.
 struct PointFinder {
     let words: [TranscriptSegment]
     let screen: String
-    /// The recorded area's size, for where marks are.
     var display = CGSize.zero
     /// What the user drew and circled with the pointer.
     var marks: [SessionEvent] = []
@@ -109,9 +102,6 @@ struct PointFinder {
         }
         let sameMarks = Set(drawn.map { Int($0.t * 1000) }) == Set((previous?.marked ?? []).map { Int($0 * 1000) })
         if let p = previous, !p.splits.isEmpty, p.segments.map(\.text).joined(separator: " ") == text(0..<words.count), sameMarks {
-            // The same words and marks: the same questions, so the same division, and the same
-            // marks for each. (Whether each needs a picture is asked again below, unless it reads
-            // the same there too.)
             result.segments = p.segments.map { s in
                 var s = s
                 s.needsScreenshot = nil
@@ -122,10 +112,8 @@ struct PointFinder {
             result.marks = p.marks
             result.apart = p.apart
         } else {
-            // Jev judges, for every two phrases near each other, whether they're about the same
-            // issue. The division into points is the one that agrees best with all of those
-            // judgments at once (same-issue phrases together, different ones apart), so one
-            // fragment's odd judgment can't split or merge a point by itself.
+            // Jev judges every pair of nearby phrases. The division is the one that agrees best
+            // with all judgments at once, so one odd judgment can't split or merge a point.
             var cuts = [0]
             if units.count > 1 {
                 let reach = 4
@@ -207,8 +195,6 @@ struct PointFinder {
             }
         }
 
-        // 2. Which point each mark is for, and for each point: does it need a picture, and is
-        //    it about something moving? Asked at once.
         let known = result.marks ?? []
         let unjudged = marks.filter { m in !known.contains { abs($0.t - m.t) < 0.001 } }
         let segments = result.segments
@@ -270,7 +256,6 @@ struct PointFinder {
         }
         points = Self.assign(marks, to: points, judged: result.marks ?? [])
 
-        // 3. A point with marks that Jev judges show different issues is divided between them.
         let compared = result.apart ?? []
         let pairs = Self.pairs(points, marks).filter { a, b in !compared.contains { abs($0.a - a.t) < 0.001 && abs($0.b - b.t) < 0.001 } }
         if let c = await compare(pairs, points: points, key: key) {
@@ -286,8 +271,7 @@ struct PointFinder {
         return result
     }
 
-    /// Which point each mark is for: one choice per mark among the points (or none), from what
-    /// was said when, and what each mark is, where, and on what. Nil if Jev didn't answer.
+    /// Which point each mark is for. Nil if Jev didn't answer.
     private func judge(_ marks: [SessionEvent], points: [SegmentAnalysis], key: String) async -> (
         marks: [MarkJudgment], questions: Int, inputTokens: Int
     )? {
@@ -319,8 +303,7 @@ struct PointFinder {
         return (out, questions.count, r.inputTokens)
     }
 
-    /// Whether each pair of marks, one after the other in one point, shows different issues. Nil
-    /// if Jev didn't answer.
+    /// Whether each pair of marks shows different issues. Nil if Jev didn't answer.
     private func compare(_ pairs: [(SessionEvent, SessionEvent)], points: [SegmentAnalysis], key: String) async -> (
         apart: [PairJudgment], questions: Int, inputTokens: Int
     )? {
@@ -365,8 +348,6 @@ struct PointFinder {
         "m\(marks.sorted { begun($0) < begun($1) }.firstIndex { $0.t == m.t && $0.kind == m.kind } ?? 0)"
     }
 
-    /// What Jev reads about the marks: what was said, with where each mark was begun; the points
-    /// and when each was said; and each mark.
     private func state(_ points: [SegmentAnalysis]) -> [String: Any] {
         let all = marks.sorted { begun($0) < begun($1) }
         var timeline: [String] = []
@@ -393,7 +374,6 @@ struct PointFinder {
         return [d["what"], d["where"].map { "at \($0)" }, d["on"].map { "on \($0)" }].compactMap { $0 as? String }.joined(separator: " ")
     }
 
-    /// A mark as Jev reads it: what it is, when, where, and what's under it.
     private func describe(_ m: SessionEvent) -> [String: Any] {
         let color = m.color.map { "\($0) " } ?? ""
         var d: [String: Any] = ["when": "\(Fmt.clock(begun(m)))–\(Fmt.clock(m.t))"]
@@ -416,9 +396,8 @@ struct PointFinder {
 
     // MARK: Points
 
-    /// The points the report numbers: `segments` (Jev's points, or the transcript's sentences),
-    /// with a previous run's answers where a point and its neighbours read the same (`saved`: its
-    /// segments, and its points).
+    /// The points the report numbers, with a previous run's answers where a point and its
+    /// neighbours read the same.
     static func points(_ segments: [SegmentAnalysis], saved: [[SegmentAnalysis]]) -> [SegmentAnalysis] {
         func reads(_ ps: [SegmentAnalysis], _ k: Int) -> [String] {
             [k > 0 ? ps[k - 1].text : "", ps[k].text, k + 1 < ps.count ? ps[k + 1].text : ""]

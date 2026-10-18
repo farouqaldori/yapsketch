@@ -1,9 +1,7 @@
 import AppKit
 import Vision
 
-/// Pointing with the mouse: circling or wiggling it over something ("this, here") instead of
-/// drawing on it, often because what it points at is gone too quickly to draw on. Found from
-/// how the pointer moved: back and forth, or round, within a small area.
+/// Pointing with the mouse: circling or wiggling it over something instead of drawing on it.
 enum PointerGestures {
     /// Gestures in the pointer samples ([t, x, y]), as events with the area pointed at.
     /// `busy`: times the pointer was doing something else (drawing). `clicks`: click times;
@@ -12,7 +10,6 @@ enum PointerGestures {
         let pts = samples.filter { s in !busy.contains { $0.contains(s[0]) } }
         guard pts.count > 4 else { return [] }
 
-        // Windows of 0.8 s that look like pointing, merged where they overlap.
         var spans: [(from: Double, to: Double)] = []
         var j = 0
         for i in pts.indices {
@@ -94,9 +91,8 @@ enum PointerGestures {
         return median <= 350 && reversals >= 3 && length >= 2 * max(20, (bw * bw + bh * bh).squareRoot())
     }
 
-    /// Where a gesture pointed, in screen points: the pointer's path, grown to whole lines of
-    /// on-screen text it touched (so "This Mac" is lit, not half of it), with generous room
-    /// around it, since a pointer only roughly circles what it means.
+    /// Where a gesture pointed, in screen points: the pointer's path grown to whole lines of
+    /// text it touched, with generous room around it.
     static func spotlightRegion(_ samples: [[Double]], from t0: Double, to t1: Double, on image: CGImage, display: CGSize) -> CGRect? {
         let pts = samples.filter { $0[0] >= t0 && $0[0] <= t1 }.map { CGPoint(x: $0[1], y: $0[2]) }
         guard pts.count > 1 else { return nil }
@@ -139,8 +135,7 @@ enum PointerGestures {
         }
     }
 
-    /// Dims everything but `regions` (screen points), with a soft edge: what the pointer meant,
-    /// lit, and nothing drawn over it. Overlapping ones merge, so the shade stays even.
+    /// Dims everything but `regions` (screen points), with a soft edge.
     static func drawSpotlight(_ regions: [CGRect], on image: CGImage, display: CGSize) -> CGImage? {
         guard
             let ctx = CGContext(

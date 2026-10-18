@@ -1,6 +1,6 @@
 import Foundation
 
-/// A speech model a provider hosts; `id` ("<provider>:<model>") is how the `modelID` setting names it.
+/// `id` is how the `modelID` setting names it.
 struct CloudModel: Identifiable {
     let providerID: String
     let model: String
@@ -11,7 +11,6 @@ struct CloudModel: Identifiable {
     var providerName: String { provider?.name ?? providerID }
 }
 
-/// Cloud speech: the models of the connected providers, the chosen one, and transcribing with it.
 enum CloudSpeech {
     static var all: [CloudModel] {
         Providers.all.flatMap { p in p.speech.map { CloudModel(providerID: p.id, model: $0.model, name: $0.name, detail: $0.detail) } }
@@ -19,14 +18,12 @@ enum CloudSpeech {
 
     static func available() -> [CloudModel] { all.filter { $0.provider?.isConnected == true } }
 
-    /// The cloud model chosen in Settings, while its provider is connected.
     static func selected() -> CloudModel? {
         guard let id = UserDefaults.standard.string(forKey: "modelID") else { return nil }
         return available().first { $0.id == id }
     }
 
-    /// The model's transcript, or nil (too big to send, or the provider failed or took longer
-    /// than `deadline` seconds, which counts as not reaching it).
+    /// nil if the audio is too big to send, or the provider failed or took longer than `deadline` seconds.
     static func transcribe(audio: URL, model: CloudModel, deadline: Double = 120) async -> [TranscriptSegment]? {
         guard let provider = model.provider, let key = provider.key,
             let bytes = try? Data(contentsOf: audio), bytes.count < 24 << 20
@@ -45,7 +42,7 @@ enum CloudSpeech {
         return segments
     }
 
-    /// After disconnecting a provider: a model it hosted can't be used, so back to the local one.
+    /// After disconnecting a provider, switches back to the local model if it hosted the chosen one.
     @MainActor
     static func forget(_ provider: any Provider) {
         guard let id = UserDefaults.standard.string(forKey: "modelID"), all.contains(where: { $0.id == id && $0.providerID == provider.id })
@@ -55,9 +52,7 @@ enum CloudSpeech {
     }
 }
 
-/// A transcription result in the common shape (text, segments, words with start/end) →
-/// YapSketch's segments, each with its words (spread evenly through a segment when the model
-/// gives none).
+/// Words are spread evenly through a segment when the model gives none.
 enum CloudTranscript {
     static func segments(from obj: [String: Any]) -> [TranscriptSegment] {
         func num(_ v: Any?) -> Double? { (v as? NSNumber)?.doubleValue }

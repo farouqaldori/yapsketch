@@ -1,6 +1,5 @@
 import Foundation
 
-/// Builds the recording report and clipboard prompt from the narration and selected pictures.
 struct ReportBuilder {
     let session: Session
     let duration: Double
@@ -66,10 +65,8 @@ struct ReportBuilder {
         return md.joined(separator: "\n")
     }
 
-    /// The instructions to paste into an agent (PROMPT.md, copied when a recording is done):
-    /// my words with their markers, then the pictures (shots/<n>.jpg is marker n's), each path on
-    /// a line of its own so agents that turn pasted paths into attached images (Claude Code) take
-    /// them all, and the command for the rest. Text and pictures don't interleave.
+    /// The prompt to paste into an agent (PROMPT.md). Each picture path is on a line of its own
+    /// so agents that turn pasted paths into attached images (Claude Code) take them all.
     func brief() -> String {
         var md: [String] = []
         md.append(points.isEmpty ? "(No speech was captured.)" : narration())

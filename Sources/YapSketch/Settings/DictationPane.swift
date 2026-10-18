@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// Voice only: what happens to the words, and where they go.
 struct DictationPane: View {
     @AppStorage("pasteMode") private var pasteMode = Paster.Mode.paste.rawValue
     @AppStorage("pasteSubmit") private var submit = false
@@ -71,8 +70,6 @@ struct DictationPane: View {
         }
     }
 
-    /// Which model tidies, and through whom: the chosen provider's; off, what picking one would
-    /// run; with none connected, which to connect.
     private func tidySubtitle(_ accounts: [any Provider]) -> String {
         if let p = accounts.first(where: { $0.id == cleanup }), let chat = p.chat { return "\(chat.modelName) via \(p.name)" }
         if let chat = accounts.first?.chat {

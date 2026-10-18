@@ -1,8 +1,7 @@
 import AppKit
 
-/// The small pill that takes the toolbar's place once a recording stops: just a spinner while
-/// the report is made, then "Copied" (or ready) with Copy.
-/// Kept out of recordings, like the toolbar.
+/// The small pill that takes the toolbar's place once a recording stops. Kept out of
+/// recordings, like the toolbar.
 final class StatusPill {
     var onCopy: (() -> Void)?
 
@@ -44,8 +43,7 @@ final class StatusPill {
     var debugPanel: NSPanel { panel }
     #endif
 
-    /// Working on it: a spinner. `anchor`: the toolbar's frame, to take its place (the toolbar
-    /// seems to fold into the pill).
+    /// `anchor`: the toolbar's frame, to take its place.
     func working(anchor: CGRect? = nil) {
         hideWork?.cancel()
         if panel.isVisible { PanelMotion.crossfade(view) }
@@ -61,8 +59,7 @@ final class StatusPill {
         show(text, problem: false, for: 10)
     }
 
-    /// Something went wrong: `text` with a coral mark, and `button` to put it right when
-    /// there's something to do. Stays a little longer than done.
+    /// `button` only when there's something to do. Stays a little longer than `done`.
     func problem(_ text: String, button: String? = nil, action: (() -> Void)? = nil) {
         fix = action
         view.copy.title = button ?? ""
@@ -94,8 +91,7 @@ final class StatusPill {
         place(anchor: nil)
     }
 
-    /// Centred where the toolbar was (or at the bottom of the screen): small round the
-    /// spinner, wide enough for the words and buttons when done.
+    /// Centred where the toolbar was, or at the bottom of the screen.
     private func place(anchor: CGRect?) {
         let size = CGSize(width: view.isBusy ? PillView.busyWidth : view.fittingWidth, height: PillView.height)
         let current = panel.isVisible ? panel.frame : nil
@@ -140,7 +136,6 @@ final class StatusPill {
     }
 }
 
-/// Near-black, like the toolbar it replaces: a spinner while working, a green tick when done.
 private final class PillView: NSView {
     static let width: CGFloat = 340
     static let busyWidth: CGFloat = 60
@@ -169,7 +164,6 @@ private final class PillView: NSView {
         for v in [spinner, tick, label, copy, close] as [NSView] { addSubview(v) }
     }
 
-    /// The tick springs in.
     func popTick() { if !tick.isHidden { PanelMotion.pop(tick) } }
 
     required init?(coder: NSCoder) { fatalError() }
@@ -194,7 +188,6 @@ private final class PillView: NSView {
         return min(560, max(Self.width, w))
     }
 
-    // Spinner or tick · text · buttons pinned to the right edge.
     override func layout() {
         super.layout()
         var x: CGFloat = 14
@@ -227,7 +220,6 @@ private final class PillView: NSView {
         path.stroke()
     }
 
-    /// Done: a white tick on a green dot.
     static let tickImage = NSImage(size: CGSize(width: 18, height: 18), flipped: true) { r in
         Brand.doneOnInk.setFill()
         NSBezierPath(ovalIn: r.insetBy(dx: 0.75, dy: 0.75)).fill()
@@ -243,7 +235,6 @@ private final class PillView: NSView {
         return true
     }
 
-    /// A problem: a white bar on a coral dot.
     static let problemImage = NSImage(size: CGSize(width: 18, height: 18), flipped: true) { r in
         Brand.coral.setFill()
         NSBezierPath(ovalIn: r.insetBy(dx: 0.75, dy: 0.75)).fill()
@@ -256,7 +247,6 @@ private final class PillView: NSView {
     override var mouseDownCanMoveWindow: Bool { true }
 }
 
-/// A small text button for the pill.
 private final class TextButton: NSView {
     var action: (() -> Void)?
     var title: String {

@@ -3,10 +3,8 @@ import AppKit
 import ScreenCaptureKit
 import SwiftUI
 
-/// The welcome: one page per permission, each ticking and moving on by itself once it's on,
-/// then the shortcuts. Shown on first launch, and from the menu or Settings while a
-/// permission is missing. The page it's on is saved, so after Quit & Reopen (Screen
-/// Recording needs one) it opens right there again.
+/// The page it's on is saved, so after Quit & Reopen (Screen Recording needs one) it opens
+/// right there again.
 @MainActor
 final class Onboarding: ObservableObject {
     static let shared = Onboarding()
@@ -19,8 +17,6 @@ final class Onboarding: ObservableObject {
         case done
     }
 
-    /// Speech's pages: on this Mac or in the cloud, then the model (downloading, or the
-    /// provider's).
     enum SpeechStage: Hashable {
         case choose, localModels, downloading, cloud, cloudModels
     }
@@ -29,21 +25,17 @@ final class Onboarding: ObservableObject {
         didSet { if step != oldValue { stepChanged() } }
     }
     @Published private(set) var granted: Set<Permission> = []
-    /// System Settings was opened for this page (it then shows the drag card and waits).
     @Published var openedSettings = false
     /// Screen Recording is switched on, but only takes effect once the app reopens.
     @Published private(set) var needsReopen = false
     /// The microphone was refused once: macOS won't ask again, so it's System Settings.
     @Published private(set) var micDenied = false
 
-    /// Speech in the cloud (else on this Mac), the local model picked, and the provider picked.
     @Published var useCloud = CloudSpeech.selected() != nil
     @Published var localModel = ModelStore.catalog.contains { $0.id == ModelStore.shared.selectedID } ? ModelStore.shared.selectedID : "parakeet-unified"
     @Published var cloudProvider: String? = CloudSpeech.selected()?.providerID
-    /// Smart pictures is on, but the accounts list was asked for (to use another one).
     @Published var showJevAccounts = false
 
-    /// "Start my first recording" on the last page.
     var onStartRecording: (() -> Void)?
 
     private var window: NSWindow?
@@ -56,19 +48,16 @@ final class Onboarding: ObservableObject {
     /// macOS 15's own "bypass the private window picker" prompt has been raised this launch.
     private var askedForCapture = false
 
-    /// Seen through: "Start my first recording" pressed, or the window closed on the last page.
     private var finished: Bool {
         get { defaults.bool(forKey: "onboarded") }
         set { defaults.set(newValue, forKey: "onboarded") }
     }
 
-    /// The page to come back to.
     private var savedStep: Permission? {
         get { defaults.string(forKey: "onboardingStep").flatMap(Permission.init(rawValue:)) }
         set { defaults.set(newValue?.rawValue, forKey: "onboardingStep") }
     }
 
-    /// On the last page but not past it yet: that's where it opens again.
     private var atEnd: Bool {
         get { defaults.bool(forKey: "onboardingAtEnd") }
         set { defaults.set(newValue, forKey: "onboardingAtEnd") }
@@ -76,14 +65,11 @@ final class Onboarding: ObservableObject {
 
     // MARK: Showing
 
-    /// At launch: the first time, or coming back from Quit & Reopen part way through.
     func showIfNeeded() {
         refresh()
         if !finished || savedStep != nil { show() }
     }
 
-    /// Opens at `permission`, or where it left off: the saved page, the welcome the first
-    /// time, else the first permission that's missing (or the last page if none is).
     func show(at permission: Permission? = nil) {
         refresh()
         if let p = permission ?? savedStep {
@@ -97,7 +83,6 @@ final class Onboarding: ObservableObject {
         NSApp.activate(ignoringOtherApps: true)
         window?.makeKeyAndOrderFront(nil)
         startPolling()
-        // Back from a reopen, already on: tick, then on.
         if case .permission(let p) = step, granted.contains(p) { scheduleAdvance() }
     }
 
@@ -112,11 +97,8 @@ final class Onboarding: ObservableObject {
         w.appearance = NSAppearance(named: .aqua)
         w.backgroundColor = Brand.paper
         w.isReleasedWhenClosed = false
-        // It comes to whichever Space you're on, full-screen ones too, instead of staying
-        // behind on the one it opened on.
         w.collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary]
-        // The window keeps its size; the title bar lies over the page. No system focus ring
-        // on the rows and buttons (it shows with keyboard navigation on and clashes).
+        // No system focus ring: it shows with keyboard navigation on and clashes.
         let host = NSHostingController(rootView: OnboardingView(model: self).focusEffectDisabled())
         host.sizingOptions = []
         w.contentViewController = host
@@ -143,8 +125,6 @@ final class Onboarding: ObservableObject {
 
     var firstMissing: Permission? { Permission.allCases.first { !granted.contains($0) } }
 
-    /// The next page after this one: speech, smart pictures, then the next missing
-    /// permission, or the end.
     var next: Step {
         switch step {
         case .welcome: return .speech(.choose)
@@ -178,7 +158,6 @@ final class Onboarding: ObservableObject {
 
     // MARK: Speech and smart pictures
 
-    /// This model on this Mac: picked, and downloaded unless it's here already.
     func pickLocal(_ m: SpeechModel) {
         useCloud = false
         localModel = m.id
@@ -193,7 +172,6 @@ final class Onboarding: ObservableObject {
         }
     }
 
-    /// This provider's model for speech.
     func pickCloud(_ m: CloudModel) {
         useCloud = true
         cloudProvider = m.providerID
@@ -203,7 +181,6 @@ final class Onboarding: ObservableObject {
             store.download(backup)
         }
         store.selectedID = m.id
-        // The same account runs Jev too, unless another was picked for it.
         if m.provider?.jev != nil, (defaults.string(forKey: "jevProvider") ?? "").isEmpty {
             defaults.set(m.providerID, forKey: "jevProvider")
         }
@@ -211,7 +188,6 @@ final class Onboarding: ObservableObject {
         step = .smartPictures
     }
 
-    /// Smart pictures on, through this provider's Jev.
     func useJev(_ providerID: String) {
         defaults.set(true, forKey: "smartPictures")
         defaults.set(providerID, forKey: "jevProvider")
@@ -245,8 +221,6 @@ final class Onboarding: ObservableObject {
 
     // MARK: Asking
 
-    /// The page's main action: the system's prompt for the microphone; for the others, System
-    /// Settings at the right list, with the drag card beside it.
     func ask(_ p: Permission) {
         if p == .microphone, AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined {
             AVCaptureDevice.requestAccess(for: .audio) { ok in
@@ -271,8 +245,7 @@ final class Onboarding: ObservableObject {
 
     func showInFinder() { NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL]) }
 
-    /// Quits and opens again (Screen Recording only applies to a fresh start); the saved page
-    /// brings the welcome back where it was.
+    /// Screen Recording only applies to a fresh process.
     func reopen() {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/sh")
@@ -312,7 +285,6 @@ final class Onboarding: ObservableObject {
         }
         if granted.contains(p), !was.contains(p) {
             helper.hide()
-            // Back from System Settings, or the microphone prompt, to see it tick.
             if openedSettings || p == .microphone {
                 NSApp.activate(ignoringOtherApps: true)
                 window?.makeKeyAndOrderFront(nil)
@@ -343,7 +315,6 @@ final class Onboarding: ObservableObject {
     }
 
     #if DEBUG
-    /// For the snapshots: a page with given permissions on, without watching the real ones.
     func debugSet(_ step: Step, granted: Set<Permission>, openedSettings: Bool = false, needsReopen: Bool = false) {
         live = false
         self.step = step

@@ -20,7 +20,6 @@ struct AppMark: View {
 
     static let icon: NSImage? = Bundle.main.url(forResource: "AppMark", withExtension: "png").flatMap(NSImage.init(contentsOf:))
 
-    /// The mark for AppKit views.
     static func image(size: CGFloat) -> NSImage {
         let image = icon?.copy() as? NSImage ?? NSImage(size: CGSize(width: size, height: size))
         image.size = CGSize(width: size, height: size)
@@ -28,7 +27,6 @@ struct AppMark: View {
     }
 }
 
-/// One key, as printed on a keycap: white, with a deeper bottom edge.
 struct Keycap: View {
     let text: String
     var large = false
@@ -52,7 +50,6 @@ struct Keycap: View {
     }
 }
 
-/// A shortcut as keycaps: its modifiers, then its key.
 struct Keycaps: View {
     let keys: [String]
     var large = false
@@ -75,7 +72,6 @@ struct Keycaps: View {
     }
 }
 
-/// A page's title, in the serif, centred on the window's header line.
 struct PageTitle: View {
     let text: String
     init(_ text: String) { self.text = text }
@@ -86,7 +82,6 @@ struct PageTitle: View {
     }
 }
 
-/// A section's name: small, mono, spaced capitals.
 struct SectionLabel: View {
     let text: String
     init(_ text: String) { self.text = text }
@@ -95,7 +90,6 @@ struct SectionLabel: View {
     }
 }
 
-/// A white card on the paper, its rows ruled apart.
 struct BrandCard<Content: View>: View {
     @ViewBuilder let content: Content
 
@@ -113,7 +107,6 @@ struct BrandCard<Content: View>: View {
     }
 }
 
-/// A labelled card, with an optional note under it.
 struct BrandSection<Content: View>: View {
     let label: String?
     var footer: String?
@@ -134,12 +127,10 @@ struct BrandSection<Content: View>: View {
     }
 }
 
-/// A card's row: a title, maybe a second line, and a control on the right.
 struct BrandRow<Content: View>: View {
     let title: String
     var subtitle: String?
     var subtitleColor: Color = .soft
-    /// A short tag beside the title, such as "Recommended".
     var badge: String?
     @ViewBuilder let content: () -> Content
 
@@ -175,14 +166,12 @@ struct BrandRow<Content: View>: View {
 }
 
 extension BrandRow where Content == InkSwitch {
-    /// A switch row.
     init(_ title: String, subtitle: String? = nil, isOn: Binding<Bool>) {
         self.init(title, subtitle: subtitle) { InkSwitch(title: title, isOn: isOn) }
     }
 }
 
-/// An on/off switch: ink when on, a warm grey when off. A button underneath, so it takes
-/// focus and Space like any control, and reads out as a switch.
+/// A button underneath, so it takes focus and Space like any control, and reads out as a switch.
 struct InkSwitch: View {
     let title: String
     @Binding var isOn: Bool
@@ -207,7 +196,6 @@ struct InkSwitch: View {
     }
 }
 
-/// Settings pages: a serif title over cards, on the paper, scrolling.
 struct BrandPage<Content: View>: View {
     let title: String
     @ViewBuilder let content: Content
@@ -232,7 +220,6 @@ struct BrandPage<Content: View>: View {
     }
 }
 
-/// The main action: an ink pill.
 struct InkButtonStyle: ButtonStyle {
     var large = false
     @Environment(\.isEnabled) private var enabled
@@ -249,7 +236,6 @@ struct InkButtonStyle: ButtonStyle {
     }
 }
 
-/// A quieter action: a white pill with a line round it.
 struct PaperButtonStyle: ButtonStyle {
     var large = false
     @Environment(\.isEnabled) private var enabled
@@ -267,7 +253,6 @@ struct PaperButtonStyle: ButtonStyle {
     }
 }
 
-/// Plain text that acts: Back, Open Settings again.
 struct TextButtonStyle: ButtonStyle {
     var color: Color = .ink
     func makeBody(configuration: Configuration) -> some View {
@@ -286,7 +271,6 @@ extension ButtonStyle where Self == PaperButtonStyle {
     static var paperLarge: PaperButtonStyle { PaperButtonStyle(large: true) }
 }
 
-/// Green, with a tick: done, granted.
 struct DoneMark: View {
     var size: CGFloat = 18
     var body: some View {
@@ -306,7 +290,6 @@ struct DoneMark: View {
     }
 }
 
-/// A line of news in a wash: green when it's good, coral when something's needed.
 struct Banner<Trailing: View>: View {
     let text: String
     var good = true
@@ -334,8 +317,6 @@ extension Banner where Trailing == EmptyView {
     init(text: String, good: Bool = true) { self.init(text: text, good: good) { EmptyView() } }
 }
 
-/// Two or three choices side by side: paper track, the chosen one a white tab. Each is a
-/// button, read out as selected when it is.
 struct BrandSegmented<Value: Hashable>: View {
     @Binding var selection: Value
     let options: [(Value, String)]

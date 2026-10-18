@@ -2,7 +2,6 @@ import AVFoundation
 import Foundation
 
 enum Audio16k {
-    /// Decodes any audio file to 16 kHz mono, handing over converted buffers in order.
     static func decode(_ src: URL, _ sink: (AVAudioPCMBuffer) throws -> Void) throws {
         let input = try AVAudioFile(forReading: src)
         guard let outFormat = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false),
@@ -45,9 +44,8 @@ enum Audio16k {
         return data
     }
 
-    /// Groups word-level segments into sentences. Narration over a screen recording
-    /// pauses mid-sentence a lot (while pointing or drawing), so pauses only split when
-    /// long, and tiny leftover fragments are folded back into the sentence before them.
+    /// Narration over a screen recording pauses mid-sentence a lot, so pauses only split when
+    /// long and tiny leftover fragments are folded back in.
     static func sentences(from words: [TranscriptSegment]) -> [TranscriptSegment] {
         var groups: [[TranscriptSegment]] = []
         var current: [TranscriptSegment] = []
@@ -67,7 +65,6 @@ enum Audio16k {
         }
         flush()
 
-        // Fold fragments of one or two words into the previous sentence (or the next, at the start).
         var merged: [[TranscriptSegment]] = []
         for g in groups {
             if g.count <= 2, let prev = merged.last, let end = prev.last?.text.last, !".?!".contains(end) {

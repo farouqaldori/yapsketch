@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// The Settings window: General, Recording, Dictation, Models and History, in a sidebar.
 enum SettingsPane: String, CaseIterable, Identifiable {
     case general = "General"
     case recording = "Recording"
@@ -31,7 +30,7 @@ final class SettingsWindow: ObservableObject {
     func show(_ pane: SettingsPane? = nil) {
         if let pane { self.pane = pane }
         if window == nil {
-            // Roomy by default (History shows pictures), never more than the screen allows.
+            // Roomy by default, since History shows pictures.
             let screen = NSScreen.main?.visibleFrame.size ?? CGSize(width: 1440, height: 900)
             let size = CGSize(width: min(1120, screen.width - 80), height: min(780, screen.height - 60))
             let w = makeWindow(size: size)
@@ -42,8 +41,7 @@ final class SettingsWindow: ObservableObject {
         window?.makeKeyAndOrderFront(nil)
     }
 
-    /// The window: paper, edge to edge, the traffic lights over the sidebar. Always light,
-    /// like the brand; the controls in it stay the system's.
+    /// Always light, like the brand. The controls in it stay the system's.
     func makeWindow(size: CGSize) -> NSWindow {
         Brand.registerFonts()
         let w = NSWindow(
@@ -58,8 +56,7 @@ final class SettingsWindow: ObservableObject {
         w.isReleasedWhenClosed = false
         w.minSize = CGSize(width: 760, height: 520)
         let host = NSHostingController(rootView: SettingsView(nav: self).focusEffectDisabled())
-        // The window is the size you make it: a long dictation or title mustn't widen it
-        // (it did, and the window jumped as you moved through History).
+        // The window is the size you make it: a long dictation or title mustn't widen it.
         host.sizingOptions = []
         w.contentViewController = host
         w.setContentSize(size)
@@ -91,13 +88,11 @@ struct SettingsView: View {
     }
 }
 
-/// The pages, the first on the header line beside the page title. ↑ and ↓ move between them.
+/// ↑ and ↓ move between the pages.
 private struct Sidebar: View {
     @Binding var selection: SettingsPane
     @FocusState private var focused: Bool
-    /// A coral dot on Permissions while one is off.
     @State private var permissionsMissing = !Permission.allGranted
-    /// And on Models while an account is out of funds or needs reconnecting.
     @State private var accountTrouble = Sidebar.anyAccountTrouble
     private static var anyAccountTrouble: Bool { Providers.connected.contains { Credentials.problem(for: $0.id) != nil } }
 
@@ -125,7 +120,6 @@ private struct Sidebar: View {
         .onKeyPress(.downArrow) { step(1) }
     }
 
-    /// At the foot of the sidebar, quieter than the pages.
     private var star: some View {
         Button(action: Links.starOnGitHub) {
             HStack(spacing: 10) {

@@ -1,7 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// Speech models, picture analysis and provider accounts.
 struct ModelsPane: View {
     @ObservedObject private var store = ModelStore.shared
     @AppStorage("smartPictures") private var smartPictures = true
@@ -9,7 +8,6 @@ struct ModelsPane: View {
     /// A model chosen before it was downloaded: used once it's here.
     @State private var pending: String?
     @AppStorage("jevProvider") private var jevProvider = ""
-    /// Redraws when an account connects, disconnects or has a problem.
     @State private var accountsRevision = 0
 
     var body: some View {
@@ -53,10 +51,6 @@ struct ModelsPane: View {
         }
     }
 
-    // MARK: Speech
-
-    /// The model transcripts use: the chosen cloud one if its account is connected, else the
-    /// chosen (or a downloaded) one on this Mac.
     private var currentSpeech: String { CloudSpeech.selected()?.id ?? ModelStore.current()?.id ?? "" }
 
     private var speech: some View {
@@ -106,8 +100,6 @@ struct ModelsPane: View {
         NotificationCenter.default.post(name: .yapSketchModelChanged, object: nil)
     }
 
-    // MARK: Smart pictures
-
     private var pictures: some View {
         let connected = Providers.connected.filter { $0.jev != nil }
         let on = smartPictures
@@ -145,7 +137,6 @@ struct ModelsPane: View {
 
 }
 
-/// A speech model on this Mac: Download, its progress, or (downloaded) In use / Use and Delete.
 private struct LocalModelRow: View {
     let model: SpeechModel
     @ObservedObject var store: ModelStore

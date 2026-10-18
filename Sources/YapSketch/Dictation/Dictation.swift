@@ -2,7 +2,6 @@ import AVFoundation
 import AppKit
 import Carbon
 
-/// Captures dictation and delivers the cleaned transcript to the frontmost app.
 @MainActor
 final class Dictation {
     private enum State { case idle, listening, working }
@@ -16,13 +15,12 @@ final class Dictation {
     /// Tapped rather than held: keeps listening until the next tap.
     private var locked = false
     private var escape: UInt32?
-    /// 16 kHz mono, everything heard.
+    /// 16 kHz mono.
     private var samples: [Float] = []
     private var segments: [TranscriptSegment] = []
     private var live = false
     private var heard = false
     private var saved: (partial: ((String) -> Void)?, segment: ((TranscriptSegment) -> Void)?)
-    /// Turning what was heard into text (often waiting on the network); Esc cancels it.
     private var work: Task<Void, Never>?
 
     var isBusy: Bool { state != .idle }
@@ -65,7 +63,6 @@ final class Dictation {
         heard = false
         locked = false
         pressedAt = Date()
-        // A streaming model on this Mac transcribes as you talk.
         live = CloudSpeech.selected() == nil && parakeet.isAvailable
         if live {
             saved = (parakeet.onPartial, parakeet.onSegment)
@@ -165,7 +162,6 @@ final class Dictation {
             pill.hide()
             Log.info("dictation: cancelled")
         case .working:
-            // Stop waiting (on a provider, usually): nothing is pasted.
             work?.cancel()
             work = nil
             if let escape { hotkeys.unregister(escape) }
@@ -203,7 +199,6 @@ final class Dictation {
         let audio = DictationHistory.newAudioURL()
         let heardSamples = samples
         let wasLive = live
-        // Esc still cancels while it's turned into text.
         escape = hotkeys.register(Hotkeys.Combo(keyCode: kVK_Escape, modifiers: 0, display: "⎋")) { [weak self] in self?.cancel() }
         work = Task {
             DictationHistory.writeWAV(heardSamples, to: audio)
@@ -253,8 +248,7 @@ final class Dictation {
         }
     }
 
-    /// The words in a dictation's audio: the chosen cloud model's (given a little while), else
-    /// this Mac's; which one heard them; and what went wrong with the cloud, if it did.
+    /// Tries the chosen cloud model briefly, then this Mac's model.
     static func words(in audio: URL, duration: Double) async -> (text: String, model: String, trouble: String?) {
         var trouble: String?
         if let cloud = CloudSpeech.selected() {
@@ -275,20 +269,16 @@ final class Dictation {
     }
 }
 
-/// The words as they're heard, in the dictation pill and the recording toolbar (a setting:
-/// they can be distracting).
 enum LiveWords {
     static var shown: Bool { UserDefaults.standard.object(forKey: "showWords") as? Bool ?? true }
 }
 
-/// Start and stop sounds, for dictation and recordings (a setting).
 enum Sounds {
     enum Kind { case start, stop, done }
 
     static var on: Bool { UserDefaults.standard.object(forKey: "sounds") as? Bool ?? true }
 
-    /// Two soft notes: rising to start listening, falling when it's done. (The system's alert
-    /// sounds read as errors.)
+    /// Two soft notes, rising to start and falling to stop. The system's alert sounds read as errors.
     private static let start = chime([(784, 0), (1175, 0.07)])  // G5, then D6
     private static let stop = chime([(1175, 0), (784, 0.07)])
     /// A recording's instructions are ready: three notes up.
@@ -306,8 +296,7 @@ enum Sounds {
         s.play()
     }
 
-    /// Bell-like notes (a sine with a soft attack, a gentle overtone and an exponential fade)
-    /// starting at the given offsets, as a WAV.
+    /// Bell-like notes starting at the given offsets, as a WAV.
     private static func chime(_ notes: [(hz: Double, at: Double)]) -> NSSound? {
         let rate = 44_100.0
         let length = (notes.map(\.at).max() ?? 0) + 0.32
@@ -339,8 +328,7 @@ enum Sounds {
     }
 }
 
-/// Past dictations: the text, what was heard before cleanup, and the audio, in
-/// ~/Library/Application Support/YapSketch/Dictations (kept as long as recordings are).
+/// Past dictations, kept as long as recordings are.
 enum DictationHistory {
     struct Entry: Codable, Identifiable, Hashable {
         var id: String
@@ -377,8 +365,7 @@ enum DictationHistory {
         save(entry)
     }
 
-    /// One kept without text: heard again (the cloud model, else this Mac's), and the entry
-    /// filled in. False if it still couldn't be.
+    /// Transcribes an entry kept without text again and fills it in. False if it still has no text.
     @MainActor
     static func retry(_ e: Entry) async -> Bool {
         let heard = await Dictation.words(in: folder.appendingPathComponent(e.audio), duration: e.duration)
@@ -415,7 +402,6 @@ enum DictationHistory {
             .sorted { $0.date > $1.date }
     }
 
-    /// To the Trash, its audio too.
     static func delete(_ e: Entry, notify: Bool = true) {
         try? FileManager.default.trashItem(at: folder.appendingPathComponent(e.id + ".json"), resultingItemURL: nil)
         try? FileManager.default.trashItem(at: folder.appendingPathComponent(e.audio), resultingItemURL: nil)

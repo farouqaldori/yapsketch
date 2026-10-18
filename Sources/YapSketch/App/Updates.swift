@@ -1,8 +1,7 @@
 import AppKit
 import Sparkle
 
-/// Sparkle: looks for a newer YapSketch on GitHub Releases once a day, and when asked.
-/// Only release builds have a feed (release.sh adds SUFeedURL); dev builds never touch updates.
+/// Sparkle updates from GitHub Releases. Only release builds have a feed (release.sh adds SUFeedURL).
 @MainActor
 final class Updates: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDelegate {
     static let shared = Updates()

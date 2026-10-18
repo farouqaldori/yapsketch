@@ -1,7 +1,6 @@
 import AVFoundation
 import Foundation
 
-/// Transcribes the whole recording with the bundled helper and the chosen speech model.
 enum ParakeetOffline {
     struct Result {
         let segments: [TranscriptSegment]

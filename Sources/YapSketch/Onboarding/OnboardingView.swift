@@ -1,8 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// The welcome's pages: the welcome itself, one per permission (with the progress down the
-/// side), and the shortcuts at the end.
 struct OnboardingView: View {
     @ObservedObject var model: Onboarding
 
@@ -35,7 +33,6 @@ private struct WelcomePage: View {
         return "Two quick choices and \(words[min(n, 4)]) permission\(n == 1 ? "" : "s"). About two minutes."
     }
 
-    /// What setup goes through: speech and smart pictures, then each permission.
     private var items: [(id: String, symbol: String, title: String, purpose: String, done: Bool)] {
         [
             ("speech", "waveform", "Speech", "On your Mac or in the cloud", false),
@@ -91,7 +88,6 @@ private struct PermissionPage: View {
 
     private var on: Bool { model.granted.contains(permission) }
     private var denied: Bool { permission == .microphone && model.micDenied }
-    /// System Settings is open at the list: drag the card in.
     private var waiting: Bool { !on && !model.needsReopen && model.openedSettings }
     private var dragsIn: Bool { permission != .microphone }
 
@@ -210,7 +206,6 @@ private struct PermissionPage: View {
     }
 }
 
-/// A row of the setup down the side.
 enum SetupItem: Hashable {
     case speech, smartPictures
     case permission(Permission)
@@ -218,8 +213,6 @@ enum SetupItem: Hashable {
     static var all: [SetupItem] { [.speech, .smartPictures] + Permission.allCases.map { .permission($0) } }
 }
 
-/// Where you are: "Setup · 3 of 6", then speech, smart pictures and each permission, ticked
-/// once done (speech shows its download while it runs).
 struct SetupSidebar: View {
     @ObservedObject var model: Onboarding
     @ObservedObject private var store = ModelStore.shared
@@ -289,7 +282,6 @@ struct SetupSidebar: View {
     }
 }
 
-/// How far a download is: a ring filling clockwise.
 struct ProgressRing: View {
     let value: Double
 
@@ -353,7 +345,6 @@ private struct DonePage: View {
 
 // MARK: Pieces
 
-/// YapSketch.app, to drag into a list in System Settings: the mark, the name, a handle.
 struct AppCard: View {
     var compact = false
 
@@ -403,7 +394,6 @@ private struct Grip: View {
     }
 }
 
-/// The soft-lit panel a page's picture sits in.
 private struct Stage<Content: View>: View {
     let height: CGFloat
     @ViewBuilder let content: Content
@@ -421,7 +411,6 @@ private struct Stage<Content: View>: View {
     }
 }
 
-/// macOS's microphone prompt, with Allow circled.
 private struct MicPromptPicture: View {
     var body: some View {
         VStack(spacing: 8) {
@@ -444,8 +433,6 @@ private struct MicPromptPicture: View {
     }
 }
 
-/// A list in System Settings: YapSketch dropped in and switched on, or a place to drop it
-/// (with the card on its way).
 private struct SettingsListPicture: View {
     let permission: Permission
     let on: Bool
@@ -515,9 +502,7 @@ private struct SettingsListPicture: View {
     }
 }
 
-/// Hand-drawn coral marks, like the ones you make on screen.
 private enum Doodle {
-    /// A loop round a button (96 × 54).
     static let circle = Scaled(size: CGSize(width: 96, height: 54)) { p in
         p.move(to: CGPoint(x: 78, y: 10))
         p.addCurve(to: CGPoint(x: 8, y: 18), control1: CGPoint(x: 60, y: 0), control2: CGPoint(x: 18, y: 2))
@@ -526,7 +511,6 @@ private enum Doodle {
         p.addCurve(to: CGPoint(x: 50, y: 9), control1: CGPoint(x: 86, y: 12), control2: CGPoint(x: 66, y: 8))
     }
 
-    /// An arrow from the card to the list (90 × 60).
     static let arrow = Scaled(size: CGSize(width: 90, height: 60)) { p in
         p.move(to: CGPoint(x: 6, y: 34))
         p.addCurve(to: CGPoint(x: 78, y: 18), control1: CGPoint(x: 24, y: 10), control2: CGPoint(x: 52, y: 6))

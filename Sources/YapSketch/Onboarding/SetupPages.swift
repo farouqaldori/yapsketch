@@ -1,9 +1,6 @@
 import AppKit
 import SwiftUI
 
-/// The welcome's first two steps: where speech turns into text (a model on this Mac, or a
-/// provider's in the cloud), then smart pictures (Jev, through an account).
-
 // MARK: Speech
 
 struct SpeechPage: View {
@@ -27,7 +24,6 @@ struct SpeechPage: View {
     }
 }
 
-/// On this Mac, or in the cloud.
 private struct SpeechChoice: View {
     @ObservedObject var model: Onboarding
     @State private var cloud = false
@@ -59,7 +55,6 @@ private struct SpeechChoice: View {
     }
 }
 
-/// The models that run on this Mac, to pick one to download.
 private struct LocalModels: View {
     @ObservedObject var model: Onboarding
     @ObservedObject private var store = ModelStore.shared
@@ -106,7 +101,6 @@ private struct LocalModels: View {
     }
 }
 
-/// The picked model coming down, while you go on.
 private struct Downloading: View {
     @ObservedObject var model: Onboarding
     @ObservedObject private var store = ModelStore.shared
@@ -162,7 +156,6 @@ private struct Downloading: View {
     }
 }
 
-/// The providers that do speech: connect one (or both, then pick which).
 private struct CloudProviders: View {
     @ObservedObject var model: Onboarding
     @State private var chosen: String?
@@ -208,7 +201,6 @@ private struct CloudProviders: View {
             chosen = model.cloudProvider
         }
         .onReceive(NotificationCenter.default.publisher(for: .yapSketchAccountsChanged)) { _ in
-            // The one just connected is the one to go on with.
             let now = Set(self.connected)
             if let new = now.subtracting(known).first { chosen = new }
             known = now
@@ -217,7 +209,6 @@ private struct CloudProviders: View {
     }
 }
 
-/// The picked provider's speech models.
 private struct CloudModels: View {
     @ObservedObject var model: Onboarding
     @State private var picked: String?
@@ -311,7 +302,6 @@ struct SmartPicturesPage: View {
         }
     }
 
-    /// Already on, through an account connected earlier (for speech, or before).
     private func on(_ provider: any Provider) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             SetupStage(height: 150) { NumberedPictureExample() }
@@ -343,7 +333,6 @@ struct SmartPicturesPage: View {
         }
     }
 
-    /// The accounts Jev works with: connect one, or skip.
     private var list: some View {
         let connected = connected
         let pick = chosen.flatMap { connected.contains($0) ? $0 : nil } ?? connected.last
@@ -385,7 +374,6 @@ struct SmartPicturesPage: View {
 
 // MARK: Pieces
 
-/// A page's serif title.
 private struct SetupTitle: View {
     let text: String
     init(_ text: String) { self.text = text }
@@ -395,7 +383,6 @@ private struct SetupTitle: View {
     }
 }
 
-/// The soft panel a page's picture sits on.
 private struct SetupStage<Content: View>: View {
     let height: CGFloat
     @ViewBuilder let content: Content
@@ -412,7 +399,6 @@ private struct SetupStage<Content: View>: View {
     }
 }
 
-/// One of two big choices, outlined when picked.
 private struct ChoiceCard: View {
     let symbol: String
     let title: String
@@ -445,8 +431,7 @@ private struct ChoiceCard: View {
     }
 }
 
-/// A provider: Connect, waiting on the browser, or Connected (and, with more than one, which
-/// to use). A pasted-key provider turns the row itself into the field, at the same height.
+/// A pasted-key provider turns the row itself into the field, at the same height.
 private struct ProviderRow: View {
     @ObservedObject var account: Account
     let primary: Bool
@@ -504,7 +489,6 @@ private struct ProviderRow: View {
         switch account.state {
         case .connected:
             if let problem = account.problem {
-                // Connected, but it won't work until this is fixed.
                 HStack(spacing: 6) {
                     Circle().fill(.coral).frame(width: 7, height: 7)
                     Text(problem == .outOfFunds ? (account.provider.billing?.empty ?? "Out of credits") : "Needs reconnecting")
@@ -536,7 +520,6 @@ private struct ProviderRow: View {
                 .accessibilityLabel("\(account.provider.name) options")
             }
         case .signingIn(let page):
-            // One line: the code to check in the browser, that it's waiting, and a way out.
             if let code = page?.code {
                 Text(code).font(.mono(12.5, .medium)).foregroundStyle(.ink).fixedSize()
                     .padding(.horizontal, 8).padding(.vertical, 3)
@@ -561,7 +544,6 @@ private struct ProviderRow: View {
 
     private func keyField(_ getOne: URL) -> some View {
         HStack(spacing: 10) {
-            // Drawn like the rest of the welcome, not the system's text box.
             SecureField("API key", text: $key, prompt: Text("Paste your \(account.provider.name) API key").foregroundColor(.faint))
                 .labelsHidden()
                 .textFieldStyle(.plain)
@@ -608,7 +590,6 @@ private struct ProviderRow: View {
     }
 }
 
-/// Connect as the main action (ink), or a quieter one once something's connected.
 private struct InkOrPaper: ButtonStyle {
     let ink: Bool
     func makeBody(configuration: Configuration) -> some View {
@@ -620,7 +601,6 @@ private struct InkOrPaper: ButtonStyle {
     }
 }
 
-/// A sign-in that failed, under the list.
 private struct ErrorLine: View {
     let accounts: [Account]
     var body: some View {
@@ -630,7 +610,6 @@ private struct ErrorLine: View {
     }
 }
 
-/// Rows ruled apart in one white card.
 private struct RowsCard<Content: View>: View {
     @ViewBuilder let content: Content
     var body: some View {
@@ -644,7 +623,6 @@ private struct RowRule: View {
     var body: some View { Rectangle().fill(.line).frame(height: 1).padding(.horizontal, 14) }
 }
 
-/// Picked or not: an ink dot, or an empty ring.
 private struct Radio: View {
     let on: Bool
     var body: some View {
@@ -661,7 +639,6 @@ private struct Radio: View {
     }
 }
 
-/// A small green label: Recommended.
 private struct Tag: View {
     let text: String
     init(_ text: String) { self.text = text }
@@ -672,7 +649,6 @@ private struct Tag: View {
     }
 }
 
-/// A download's progress: an ink bar on a soft track.
 private struct Bar: View {
     let value: Double
     var body: some View {
@@ -686,8 +662,6 @@ private struct Bar: View {
     }
 }
 
-/// What smart pictures give: a picture with the loop you drew and its number, next to the
-/// words it goes with.
 private struct NumberedPictureExample: View {
     var compact = false
 
@@ -716,7 +690,6 @@ private struct NumberedPictureExample: View {
         return RoundedRectangle(cornerRadius: 6 * s).fill(.rule).frame(width: 34 * s, height: 30 * s)
     }
 
-    /// A hand-drawn loop, closing past where it started.
     struct Loop: Shape {
         func path(in r: CGRect) -> Path {
             func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: r.minX + r.width * x, y: r.minY + r.height * y) }

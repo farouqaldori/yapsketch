@@ -1,7 +1,5 @@
 import Foundation
 
-/// OpenRouter (https://openrouter.ai): connect with PKCE, pay from OpenRouter credits. Jev
-/// (its Decisions API, pictures inline), cloud speech models and a chat model.
 struct OpenRouter: Provider {
     let id = "openrouter"
     let name = "OpenRouter"

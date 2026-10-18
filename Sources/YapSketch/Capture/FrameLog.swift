@@ -3,8 +3,7 @@ import CoreVideo
 import Foundation
 
 /// Small grayscale frames of the screen, taken while recording (up to 8 a second, only when
-/// the screen changes), so processing after the recording stops doesn't have to decode the
-/// video for them. Also notes, as it goes, the moments the screen changed most.
+/// the screen changes), so processing afterwards doesn't have to decode the video.
 ///
 /// `frames.gray`: per frame, the time (Float64, seconds), width and height (Int32) and the
 /// pixels (one byte each). `changes.json`: [[t, size]] of the changes found.
@@ -33,7 +32,7 @@ final class LiveFrames {
         self.display = display
     }
 
-    /// A frame from the capture stream (called for every frame; takes at most 8 a second).
+    /// Called for every frame. Takes at most 8 a second.
     func add(_ pixels: CVPixelBuffer) {
         let t = clock()
         guard t - lastTaken >= 0.125 else { return }
@@ -47,14 +46,13 @@ final class LiveFrames {
         add(fine, at: t)
     }
 
-    /// A frame already made small (640 px wide gray), at `t`.
+    /// `fine`: 640 px wide gray.
     private func add(_ fine: ScreenDiff.Gray, at t: Double) {
         guard t - lastTaken >= 0.125 else { return }
         lastTaken = t
         taken += 1
         queue.async { [self] in
-            // The change since the last frame, on a fine grid (a list's check marks
-            // resetting is a small change), ignoring around the pointer.
+            // A fine grid, so a small change (a list's check marks resetting) still counts.
             if let p = previous {
                 let around = [pointer(p.t), pointer(t)].compactMap { $0 }
                 let n = ScreenDiff.changed(p.g, fine, ignoring: Self.fineCells(around: around, display: display), cols: 64, rows: 40).count
@@ -71,7 +69,7 @@ final class LiveFrames {
             withUnsafeBytes(of: t) { header.append(contentsOf: $0) }
             withUnsafeBytes(of: Int32(small.w)) { header.append(contentsOf: $0) }
             withUnsafeBytes(of: Int32(small.h)) { header.append(contentsOf: $0) }
-            // The throwing write: the old one raises an exception (a crash) on a full disk.
+            // The throwing write: `write(_:)` raises an exception (a crash) on a full disk.
             try? file?.write(contentsOf: header + Data(small.px))
         }
     }
@@ -88,7 +86,6 @@ final class LiveFrames {
         }
     }
 
-    /// A screen frame as 8-bit gray, `width` pixels wide.
     static func gray(_ pixels: CVPixelBuffer, width: Int) -> ScreenDiff.Gray? {
         CVPixelBufferLockBaseAddress(pixels, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixels, .readOnly) }
@@ -134,7 +131,6 @@ final class LiveFrames {
         return ok ? ScreenDiff.Gray(px: out, w: dw, h: dh) : nil
     }
 
-    /// Half the size, each pixel the average of four.
     static func half(_ g: ScreenDiff.Gray) -> ScreenDiff.Gray {
         let w = g.w / 2
         let h = g.h / 2
@@ -192,7 +188,6 @@ struct FrameLog {
         return times.isEmpty ? nil : FrameLog(times: times, frames: frames, changes: changes)
     }
 
-    /// The screen at `t`.
     func at(_ t: Double) -> ScreenDiff.Gray? {
         var lo = 0
         var hi = times.count - 1

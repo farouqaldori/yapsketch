@@ -45,7 +45,6 @@ FEED_URL="https://github.com/$REPO/releases/latest/download/appcast.xml"
 APP="$APP" SIGN_IDENTITY="$SIGN_IDENTITY" HARDENED=1 FEED_URL="$FEED_URL" scripts/build-app.sh
 codesign --verify --strict --deep "$APP"
 
-# Waits for Apple's verdict; on a rejection prints why.
 notarize() {
     [[ "${SKIP_NOTARIZE:-}" == 1 ]] && { echo "Skipping notarization of $1"; return; }
     local result="$OUT/notary.json"
@@ -70,9 +69,8 @@ fi
 rm "$ZIP"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 
-# The .dmg: a window with the app and an Applications link to drag it to, on
-# Resources/Installer/background.tiff (scripts/make-dmg-background.sh), whose arrow runs
-# between the two icons. dmgbuild writes the window's .DS_Store itself, without Finder.
+# The .dmg: the app and an Applications link on Resources/Installer/background.tiff
+# (scripts/make-dmg-background.sh). dmgbuild writes the window's .DS_Store without Finder.
 [[ -x build/dmgbuild/bin/dmgbuild ]] || { python3 -m venv build/dmgbuild && build/dmgbuild/bin/pip install -q dmgbuild==1.6.7; }
 build/dmgbuild/bin/python -I - "$APP" "$DMG" <<'EOF'
 import sys, dmgbuild
