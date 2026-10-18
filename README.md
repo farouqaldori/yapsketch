@@ -17,8 +17,6 @@ For the details, run `yapsketch show k3x9`.
 
 Paste it into Claude Code, Codex, Cursor, or anything with a prompt box.
 
-<p align="center"><img src=".github/assets/paste.png" alt="One paste, every detail: your words numbered [1] and [2] in a coding agent, with a picture for each point." /></p>
-
 ## How it works
 
 1. **You record.** Press `⌃⌥R`. YapSketch records your screen and your voice, on your Mac.
@@ -27,8 +25,6 @@ Paste it into Claude Code, Codex, Cursor, or anything with a prompt box.
 4. **You paste.** Your words with [1], [2] and a picture for each are on your clipboard.
 
 ## Or just yap
-
-<p align="center"><img src=".github/assets/dictate.png" alt="Hold fn, speak, let go: your words land wherever you're typing." /></p>
 
 Hold `fn`, speak, let go. Your words land wherever you're typing, turned into text on your Mac, with fillers like "um" tidied away.
 
