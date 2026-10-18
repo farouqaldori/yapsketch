@@ -24,7 +24,11 @@ enum SettingsPane: String, CaseIterable, Identifiable {
 @MainActor
 final class SettingsWindow: ObservableObject {
     static let shared = SettingsWindow()
-    @Published var pane: SettingsPane? = .general
+    @Published var pane: SettingsPane? = .general {
+        didSet { if pane != oldValue { viewer = nil } }
+    }
+    /// A recording's pictures, shown over the whole window.
+    @Published var viewer: PictureViewer.Pictures?
     private var window: NSWindow?
 
     func show(_ pane: SettingsPane? = nil) {
@@ -82,6 +86,8 @@ struct SettingsView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .overlay { PictureViewer(nav: nav).transition(.opacity) }
+        .animation(.easeOut(duration: 0.15), value: nav.viewer)
         .background(.paper)
         .ignoresSafeArea()
         .tint(.ink)

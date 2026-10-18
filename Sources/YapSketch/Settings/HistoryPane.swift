@@ -9,27 +9,19 @@ struct HistoryPane: View {
     @State private var groups: [(String, [HistoryItem])] = []
     @State private var loaded = false
     @State private var selection: String?
-    @State private var expanded: RecordingSummary.Point?
     @State private var confirmingClear = false
 
     var body: some View {
-        ZStack {
-            list
-            if let p = expanded {
-                Lightbox(point: p) { expanded = nil }
-                    .transition(.opacity)
+        list
+            .onChange(of: selection) { old, _ in if old != nil { SettingsWindow.shared.viewer = nil } }
+            .background(.paper)
+            #if DEBUG
+            .onAppear {
+                if ProcessInfo.processInfo.environment["YAPSKETCH_SNAPSHOT_EXPAND"] != nil, let r = RecordingSummary.all().first {
+                    RecordingDetail.open(r, at: 0)
+                }
             }
-        }
-        .animation(.easeOut(duration: 0.15), value: expanded)
-        .onChange(of: selection) { old, _ in if old != nil { expanded = nil } }
-        .background(.paper)
-        #if DEBUG
-        .onAppear {
-            if ProcessInfo.processInfo.environment["YAPSKETCH_SNAPSHOT_EXPAND"] != nil, let p = RecordingSummary.all().first?.points.first {
-                expanded = p
-            }
-        }
-        #endif
+            #endif
     }
 
     private var list: some View {
@@ -77,7 +69,7 @@ struct HistoryPane: View {
             }
             Rectangle().fill(.rule).frame(width: 1)
             switch items.first(where: { $0.id == selection }) {
-            case .recording(let r): RecordingDetail(item: r, expanded: $expanded)
+            case .recording(let r): RecordingDetail(item: r)
             case .dictation(let d): DictationDetail(entry: d)
             case nil:
                 Text(!loaded ? "" : items.isEmpty ? "No recordings or dictations yet" : "Select a recording or dictation")
@@ -377,7 +369,6 @@ private struct DictationDetail: View {
 
 private struct RecordingDetail: View {
     let item: RecordingSummary
-    @Binding var expanded: RecordingSummary.Point?
     @State private var copied = false
     @State private var retrying = false
 
@@ -411,7 +402,9 @@ private struct RecordingDetail: View {
                     narration.font(.ui(15)).foregroundStyle(.ink).lineSpacing(6).textSelection(.enabled)
                 }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 14)], spacing: 16) {
-                    ForEach(item.points, id: \.n) { p in PointCard(point: p) { expanded = p } }
+                    ForEach(item.points, id: \.n) { p in
+                        PointCard(point: p) { Self.open(item, at: item.points.filter { $0.picture != nil }.firstIndex(of: p) ?? 0) }
+                    }
                 }
                 if item.failure == nil {
                     (Text("Agents can open this with ") + Text("yapsketch show \(id)").font(.mono(12.5)).foregroundColor(.ink))
@@ -423,6 +416,14 @@ private struct RecordingDetail: View {
     }
 
     private var id: String { CLI.id(item.folder) }
+
+    /// The recording's pictures over the whole window, starting at the `index`th.
+    @MainActor
+    static func open(_ item: RecordingSummary, at index: Int) {
+        let pictures = item.points.compactMap { p in p.picture.map { PictureViewer.Picture(n: p.n, url: $0) } }
+        guard !pictures.isEmpty else { return }
+        SettingsWindow.shared.viewer = PictureViewer.Pictures(all: pictures, index: min(index, pictures.count - 1))
+    }
 
     private var narration: Text {
         item.narration.reduce(Text("")) { acc, piece in
@@ -463,48 +464,6 @@ private struct PointCard: View {
                 .onTapGesture { if point.picture != nil { expand() } }
                 .help(point.picture != nil ? "Expand" : "")
             if !point.did.isEmpty { Text(point.did).font(.ui(12.5)).foregroundStyle(.soft).lineLimit(2) }
-        }
-    }
-}
-
-private struct Lightbox: View {
-    let point: RecordingSummary.Point
-    let close: () -> Void
-    @FocusState private var focused: Bool
-
-    var body: some View {
-        ZStack {
-            Color.ink.opacity(0.94).ignoresSafeArea().onTapGesture(perform: close)
-            // The picture fills the space above a fixed bar; the label never moves with its size.
-            VStack(spacing: 0) {
-                Group {
-                    if let url = point.picture {
-                        LoadedImage(url: url, maxPixels: 3200, corner: 8).shadow(radius: 20)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal, 28).padding(.top, 44)
-                Text("[\(point.n)]").font(.mono(12.5)).foregroundStyle(.white.opacity(0.8))
-                    .frame(height: 52)
-            }
-            VStack {
-                HStack {
-                    Spacer()
-                    Button(action: close) {
-                        Image(systemName: "xmark").font(.system(size: 13, weight: .semibold)).frame(width: 28, height: 28)
-                    }
-                    .buttonStyle(.borderless).foregroundStyle(.white.opacity(0.8)).padding(10).help("Close (esc)")
-                }
-                Spacer()
-            }
-        }
-        .focusable()
-        .focusEffectDisabled()
-        .focused($focused)
-        .onAppear { focused = true }
-        .onKeyPress(.escape) {
-            close()
-            return .handled
         }
     }
 }
