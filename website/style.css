@@ -1493,7 +1493,7 @@ footer nav {
   margin-top: 6px;
   font-size: 14px;
 }
-footer nav a:hover {
+footer nav a:not(.download):hover {
   color: var(--ink);
 }
 /* The same Download and open-source link as up top, between the line and the X link. */
