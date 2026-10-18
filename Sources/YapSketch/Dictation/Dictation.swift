@@ -179,9 +179,10 @@ final class Dictation {
     private func finish() {
         guard state == .listening else { return }
         state = .working
+        // The moment you let go, even though listening carries on through the tail.
+        Sounds.play(.dictateOff)
         guard Double(samples.count) / 16_000 >= 0.3 else {
             stopListening()
-            Sounds.play(.dictateOff)
             stopLive()
             state = .idle
             pill.done("Too short to transcribe", ok: false)
@@ -193,8 +194,6 @@ final class Dictation {
 
     private func transcribe() {
         stopListening()
-        // After the tail, so the microphone doesn't hear it.
-        Sounds.play(.dictateOff)
         let duration = Double(samples.count) / 16_000
         let audio = DictationHistory.newAudioURL()
         let heardSamples = samples

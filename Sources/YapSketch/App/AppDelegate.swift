@@ -432,11 +432,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @MainActor
     private func stopRecording() async {
         guard state == .recording, let session, let recorder else { return }
+        Sounds.play(.stop)
         pill.working(anchor: player.panel.isVisible ? player.panel.frame : nil)
         state = .processing("Saving…")
         await endCapture(session, recorder)
-        // Once the microphone is off, so the recording doesn't hear it.
-        Sounds.play(.stop)
         if Simulate.take(.quitWhileProcessing) { exit(0) }
         await finishProcessing(session)
     }
