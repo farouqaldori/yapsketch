@@ -1,4 +1,8 @@
-<p align="center"><img src=".github/assets/hero.png" alt="YapSketch: it's faster to show than to type. Talk and draw on your screen, and YapSketch turns it into a prompt for your coding agent." /></p>
+<p align="center"><img src="website/icon.png" width="96" alt="" /></p>
+
+<h1 align="center">YapSketch</h1>
+
+<p align="center"><img src=".github/assets/how.png" alt="Talk, draw, paste: record and talk, point at it, then paste." /></p>
 
 Stop typing paragraphs to explain one bug. Record your screen, say what's wrong and point at it. When you stop, Jev works out which of your words go with what you showed and picks the clearest picture for each point. Your words, numbered, with those pictures, are on your clipboard:
 
@@ -16,8 +20,6 @@ Paste it into Claude Code, Codex, Cursor, or anything with a prompt box.
 <p align="center"><img src=".github/assets/paste.png" alt="One paste, every detail: your words numbered [1] and [2] in a coding agent, with a picture for each point." /></p>
 
 ## How it works
-
-<p align="center"><img src=".github/assets/how.png" alt="Talk, draw, paste: record and talk, point at it, then paste." /></p>
 
 1. **You record.** Press `⌃⌥R`. YapSketch records your screen and your voice, on your Mac.
 2. **You talk and point.** Say what you mean, the way you'd tell a colleague. Circle it, draw on it or just wave the pointer at it.
