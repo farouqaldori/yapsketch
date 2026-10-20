@@ -57,6 +57,10 @@ final class MiniPlayer {
     func sync(drawing: Bool, tool: DrawTool, color: Int, fading: Bool) {
         view.sync(drawing: drawing, tool: tool, color: color, fading: fading)
     }
+    #if DEBUG
+    /// A lighter toolbar for the demo video: pointer, pen, three inks and stop.
+    func simplifyForVideo(width: CGFloat) { view.simplifyForVideo(width: width) }
+    #endif
 }
 
 private final class PlayerView: NSView {
@@ -81,6 +85,8 @@ private final class PlayerView: NSView {
     private let recordButton = PillButton(symbol: PillButton.stop, tip: "")
     private let discardButton = PillButton(symbol: "trash", tip: "Discard this recording")
     private var recording = false
+    private var extraButtons: [PillButton] = []
+    private var videoSimple = false
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -135,6 +141,7 @@ private final class PlayerView: NSView {
         discardButton.action = { [weak self] in self?.onDiscard?() }
         addSubview(discardButton)
 
+        extraButtons = [undo, clear]
         layoutRows(extra: [undo, clear])
         startPulse()
     }
@@ -178,6 +185,33 @@ private final class PlayerView: NSView {
     }
 
     private var separators: [CGFloat] = []
+
+    #if DEBUG
+    func simplifyForVideo(width: CGFloat) {
+        videoSimple = true
+        for (tool, b) in toolButtons where !(tool == nil || tool == .pen) { b.isHidden = true }
+        for c in colorButtons.dropFirst(3) { c.isHidden = true }
+        for b in [fadeButton, discardButton] + extraButtons { b.isHidden = true }
+        setFrameSize(NSSize(width: width, height: Self.height))
+        separators = []
+        layoutRows(extra: extraButtons)
+        // Re-flow the bottom row for the buttons that are left.
+        separators = []
+        let mid: CGFloat = 26
+        var x: CGFloat = 12
+        for (_, b) in toolButtons where !b.isHidden {
+            b.frame = CGRect(x: x, y: mid - 14, width: 28, height: 28)
+            x += 32
+        }
+        x = separator(at: x)
+        for c in colorButtons where !c.isHidden {
+            c.frame = CGRect(x: x, y: mid - 11, width: 22, height: 22)
+            x += 22
+        }
+        recordButton.frame = CGRect(x: bounds.width - 12 - 28, y: mid - 14, width: 28, height: 28)
+        needsDisplay = true
+    }
+    #endif
 
     private func separator(at x: CGFloat) -> CGFloat {
         separators.append(x + 4)
@@ -229,7 +263,7 @@ private final class PlayerView: NSView {
             caption.textColor = recording ? Brand.card : Brand.onInkSoft
             refreshTips()
             // Hidden rather than removed, so the button keeps its place.
-            discardButton.isHidden = !recording
+            discardButton.isHidden = !recording || videoSimple
         }
         timer.stringValue = recording ? Fmt.clock(elapsed, decimals: false) : "--:--"
     }

@@ -37,6 +37,58 @@ enum DevSnapshot {
         try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
     }
 
+    /// `--snapshot-video-assets dir`: the real toolbar as transparent frames (15 fps, a speaking
+    /// recording with a live caption and the pen out) and the status pill, for a demo video.
+    @MainActor static func videoAssets(to dir: URL) {
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let pixelScale = CGFloat(Double(ProcessInfo.processInfo.environment["YAPSKETCH_SCALE"] ?? "") ?? 2)
+        func png(_ view: NSView, _ name: String) {
+            view.layoutSubtreeIfNeeded()
+            guard let rep = NSBitmapImageRep(
+                bitmapDataPlanes: nil, pixelsWide: Int(view.bounds.width * pixelScale), pixelsHigh: Int(view.bounds.height * pixelScale),
+                bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)
+            else { return }
+            rep.size = view.bounds.size
+            view.cacheDisplay(in: view.bounds, to: rep)
+            try? rep.representation(using: .png, properties: [:])?.write(to: dir.appendingPathComponent(name))
+        }
+        // YAPSKETCH_CAPTIONS: [{"t": seconds into the take, "w": word}], YAPSKETCH_LEVELS: one 0...1 level per frame,
+        // YAPSKETCH_TAKE_SECONDS, YAPSKETCH_PEN_AT and YAPSKETCH_PEN_OFF: how long the take is, and when the pen is picked and put down.
+        let env = ProcessInfo.processInfo.environment
+        func json(_ key: String) -> Any? { env[key].flatMap { FileManager.default.contents(atPath: $0) }.flatMap { try? JSONSerialization.jsonObject(with: $0) } }
+        let spoken: [(t: Double, w: String)] = (json("YAPSKETCH_CAPTIONS") as? [[String: Any]] ?? []).compactMap {
+            guard let t = $0["t"] as? Double, let w = $0["w"] as? String else { return nil }
+            return (t, w)
+        }
+        let levels = (json("YAPSKETCH_LEVELS") as? [Double])?.map { Float($0) }
+        let take = Double(env["YAPSKETCH_TAKE_SECONDS"] ?? "") ?? 4.4
+        let penAt = Double(env["YAPSKETCH_PEN_AT"] ?? "") ?? 0.7
+        let penOff = Double(env["YAPSKETCH_PEN_OFF"] ?? "") ?? .infinity
+        let player = MiniPlayer()
+        if let w = Double(env["YAPSKETCH_SIMPLE"] ?? "") { player.simplifyForVideo(width: CGFloat(w)) }
+        let fps = 15.0
+        for f in 0..<Int(take * fps) {
+            let t = Double(f) / fps
+            player.update(recording: true, elapsed: t)
+            player.sync(drawing: t >= penAt && t < penOff, tool: .pen, color: 0, fading: false)
+            player.push(level: levels.map { f < $0.count ? $0[f] : 0.03 } ?? 0.05)
+            let said = spoken.filter { $0.t <= t }.map(\.w)
+            player.setCaption(said.joined(separator: " "))
+            png(player.panel.contentView!, String(format: "toolbar-%04d.png", f))
+        }
+        let status = StatusPill()
+        func shoot(_ name: String) {
+            status.debugPanel.orderFrontRegardless()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.7))
+            png(status.debugPanel.contentView!, name)
+        }
+        status.working()
+        shoot("status-working.png")
+        status.done("Report ready")
+        shoot("status-done.png")
+        status.debugPanel.orderOut(nil)
+    }
+
     /// `--snapshot-player out.png`: the mini player, recording, with the pen selected.
     static func player(to url: URL) {
         let p = MiniPlayer()

@@ -81,6 +81,11 @@ if let i = args.firstIndex(of: "--snapshot-pills"), i + 1 < args.count {
     MainActor.assumeIsolated { DevSnapshot.pills(to: URL(fileURLWithPath: args[i + 1])) }
     exit(0)
 }
+if let i = args.firstIndex(of: "--snapshot-video-assets"), i + 1 < args.count {
+    _ = NSApplication.shared
+    MainActor.assumeIsolated { DevSnapshot.videoAssets(to: URL(fileURLWithPath: args[i + 1])) }
+    exit(0)
+}
 if let i = args.firstIndex(of: "--snapshot-player"), i + 1 < args.count {
     _ = NSApplication.shared
     DevSnapshot.player(to: URL(fileURLWithPath: args[i + 1]))
