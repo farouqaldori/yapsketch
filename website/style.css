@@ -457,12 +457,10 @@ h1 {
   font-size: 13px;
   color: #fff;
   opacity: 0;
-  transition: opacity 0.25s;
 }
-/* The next sentence fades in once the last has faded out. */
+/* Words appear as they're said, and the next sentence replaces the last: no fading. */
 .said .line.now {
   opacity: 1;
-  transition-delay: 0.25s;
 }
 /* Once a sentence is too long for the line, older words slide off the left. */
 .said .line.tail {
@@ -478,15 +476,9 @@ h1 {
 .said .line span {
   display: none;
 }
+
 .said .line span.on {
   display: inline;
-  animation: word 0.14s ease-out;
-}
-@keyframes word {
-  from {
-    opacity: 0;
-    filter: blur(3px);
-  }
 }
 /* Working: just a spinner in a small round pill. */
 .processing-state .toolbar {
@@ -1528,59 +1520,53 @@ footer .x svg {
     margin-bottom: 20px;
   }
 }
-@media (max-width: 600px) {
-  main {
-    padding: 0 16px;
-  }
-  .intro {
-    padding: 40px 0 32px;
-  }
-  .lede {
-    font-size: 16px;
-  }
-  .actions {
-    gap: 24px;
+/* Phones and in-between sizes share the cropped, full-width demo: the screen runs past both edges and the
+   recorder straddles its bottom edge, as wide as the controls under it. */
+@media (max-width: 1000px) {
+  .demo {
+    margin: 0 -52px 84px;
   }
   /* The toolbar straddles the screen's bottom edge (the screen is 16:9 of the column's width). */
+  /* As wide as the controls under it, and big enough to read. */
   .toolbar {
     top: calc(135vw * 0.5625 - 11px);
     bottom: auto;
     transform-origin: 50% 0;
-    width: 338px;
-    max-width: 100%;
-    height: 35px;
+    width: min(calc(100vw - 32px), 528px);
+    max-width: none;
+    height: 44px;
   }
   .talking .toolbar {
-    height: 58px;
-    border-radius: 14px;
+    height: 74px;
+    border-radius: 18px;
   }
   .status {
-    top: 6px;
-    left: 16px;
-    right: 16px;
-    gap: 5px;
+    top: 11px;
+    left: 20px;
+    right: 20px;
+    gap: 7px;
   }
   .said .line {
     width: 100%;
-    font-size: 11px;
+    font-size: 13.5px;
   }
   /* Once a sentence is too long for the line, older words slide off the left. */
   .said .line.tail {
     justify-content: flex-end;
   }
   .record-tools {
-    height: 35px;
-    left: 16px;
-    right: 16px;
-    gap: 4px;
+    height: 44px;
+    left: 20px;
+    right: 20px;
+    gap: 7px;
   }
   .tool {
-    width: 20px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
   }
   .tool svg {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
   }
   .text-tool {
     display: none;
@@ -1592,25 +1578,25 @@ footer .x svg {
     gap: 4px;
   }
   .colours i {
-    width: 6px;
-    height: 6px;
+    width: 9px;
+    height: 9px;
   }
   .timer {
-    margin: 0 2px;
-    font-size: 8px;
+    margin: 0 4px;
+    font-size: 10px;
   }
   .meter {
     gap: 1px;
   }
   .meter i {
-    height: 14px;
+    height: 18px;
   }
   .stop {
-    width: 22px;
-    height: 22px;
+    width: 28px;
+    height: 28px;
   }
   .finished .toolbar {
-    width: 212px;
+    width: 236px;
   }
   .copied {
     gap: 7px;
@@ -1629,9 +1615,6 @@ footer .x svg {
   /* Too small to float over: the card sits under the screen and grows from its top edge. */
   /* The demo runs past both edges of the phone, cropped; the toolbar and the pasted card stay
      in view, over it. */
-  .demo {
-    margin: 0 -16px 84px;
-  }
   .scrim {
     border-radius: 0;
   }
@@ -1642,6 +1625,38 @@ footer .x svg {
   .handoff {
     bottom: 26px;
     padding: 0 calc(17.5vw + 14px);
+  }
+}
+@media (max-width: 600px) {
+  main {
+    padding: 0 16px;
+  }
+  .intro {
+    padding: 40px 0 32px;
+  }
+  .lede {
+    font-size: 16px;
+  }
+  /* On phones the GitHub link is just its icon, in the same grey, beside the download button. */
+  .actions {
+    flex-wrap: nowrap;
+    gap: 12px;
+  }
+  .github {
+    flex: none;
+    justify-content: center;
+    width: 44px;
+    height: 56px;
+  }
+  .github svg {
+    width: 26px;
+    height: 26px;
+  }
+  .gh-label {
+    display: none;
+  }
+  .demo {
+    margin: 0 -16px 84px;
   }
   .features {
     margin-top: 56px;
@@ -1734,5 +1749,239 @@ footer .x svg {
   }
   .cursor {
     display: none;
+  }
+}
+
+/* Under the demo: play or pause, a timeline, sound on or off. */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 560px;
+  margin: 28px auto 0;
+  padding: 0 16px;
+}
+.ctl {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: #fffdf9;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.ctl:hover {
+  background: #fff;
+}
+.ctl svg {
+  grid-area: 1 / 1;
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ctl .i-pause,
+.ctl .i-on path:last-child,
+.ctl .i-off {
+  fill: none;
+}
+.ctl .i-on path:first-child,
+.ctl .i-off path:first-child {
+  fill: currentColor;
+}
+.play[data-state="paused"] .i-pause,
+.play[data-state="playing"] .i-play,
+.sound[data-state="off"] .i-on,
+.sound:not([data-state="off"]) .i-off {
+  display: none;
+}
+.time {
+  flex: none;
+  width: 32px;
+  font: 12px var(--mono);
+  color: var(--soft);
+}
+.seek,
+.volume {
+  flex: 1;
+  min-width: 0;
+  height: 38px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  --p: 0;
+}
+.seek::-webkit-slider-runnable-track,
+.volume::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--ink) calc(var(--p) * 100%), #e7dccb 0);
+}
+.seek::-moz-range-track,
+.volume::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: #e7dccb;
+}
+.seek::-moz-range-progress,
+.volume::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--ink);
+}
+.seek::-webkit-slider-thumb,
+.volume::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border: 3px solid #fffdf9;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 1px 4px #1a120c40;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.seek::-moz-range-thumb,
+.volume::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: 3px solid #fffdf9;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 1px 4px #1a120c40;
+}
+.hint {
+  flex: none;
+  display: none;
+  font: 12px var(--mono);
+  color: var(--soft);
+}
+.controls[data-sound="locked"] .hint {
+  display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .controls {
+    display: none;
+  }
+}
+@media (max-width: 1000px) {
+  /* The toolbar straddles the screen's bottom edge here: the controls start below it. */
+  .controls {
+    margin-top: 96px;
+    gap: 8px;
+    padding: 0 16px;
+  }
+  .hint {
+    display: none !important;
+  }
+  .demo {
+    margin-bottom: 40px;
+  }
+}
+
+/* Hover the sound button and a volume slider appears beside it, over the page: nothing moves. A click mutes. */
+.vol {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+}
+.vol::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: 12px;
+}
+.volume {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 10px);
+  width: 84px;
+  translate: 0 -50%;
+  flex: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.vol:hover .volume,
+.vol:focus-within .volume {
+  opacity: 1;
+  pointer-events: auto;
+}
+/* With no room to its right, it opens over the timeline instead. */
+@media (max-width: 820px) {
+  .vol::after {
+    left: auto;
+    right: 100%;
+  }
+  .volume {
+    left: auto;
+    right: calc(100% + 10px);
+  }
+}
+@media (hover: none) {
+  .volume {
+    display: none;
+  }
+}
+
+/* Between phones and desktop the four steps would be squeezed: two by two instead. */
+@media (min-width: 601px) and (max-width: 1000px) {
+  .steps {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 48px 40px;
+  }
+  .hop {
+    display: none;
+  }
+}
+
+/* Everything in the demo follows the clock (main.js `drive`): no transitions or animations of its own, so
+   seeking, pausing and playing always agree. */
+#demo *,
+#demo *::before,
+#demo *::after {
+  transition: none !important;
+}
+#demo .tick circle,
+#demo .tick path,
+#demo .copy,
+#demo .spinner {
+  animation: none !important;
+}
+#demo .copy {
+  display: inline-block;
+}
+/* The toolbar's size is one number (--a) for the collapse and another (--b) for the report-ready pill. */
+#demo .toolbar {
+  --tw: 420px;
+  --th: 70px;
+  --pw: 56px;
+  --ph: 36px;
+  --fw: 230px;
+  --fh: 38px;
+  --a: 0;
+  --b: 0;
+  width: calc(var(--tw) + (var(--pw) - var(--tw)) * var(--a) + (var(--fw) - var(--pw)) * var(--b));
+  height: calc(var(--th) + (var(--ph) - var(--th)) * var(--a) + (var(--fh) - var(--ph)) * var(--b));
+  border-radius: calc(18px + 12px * var(--a));
+}
+@media (max-width: 1000px) {
+  #demo .toolbar {
+    --tw: min(calc(100vw - 32px), 528px);
+    --th: 74px;
+    --fw: 236px;
   }
 }
