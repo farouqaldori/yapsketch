@@ -47,7 +47,7 @@ main {
 
 /* Intro */
 .intro {
-  padding: 160px 0 120px;
+  padding: 72px 0 72px;
   text-align: center;
 }
 .hero-icon {
@@ -97,28 +97,6 @@ h1 {
   font-size: 18px;
   line-height: 1.5;
   color: var(--soft);
-}
-
-/* One quiet line under the buttons, as far below them as the line above is. */
-.powered {
-  display: flex;
-  width: fit-content;
-  align-items: center;
-  gap: 6px;
-  margin: 30px auto 0;
-  font-size: 13px;
-  color: var(--soft);
-  transition: color 0.2s;
-}
-.powered img {
-  border-radius: 4px;
-}
-.powered b {
-  font-weight: 600;
-  color: var(--ink);
-}
-.powered:hover {
-  color: var(--ink);
 }
 
 /* Demo */
@@ -841,7 +819,7 @@ kbd {
 .features,
 .how {
   max-width: 1120px;
-  margin: 150px auto 0;
+  margin: 110px auto 0;
   text-align: center;
 }
 .label {
@@ -1203,7 +1181,7 @@ kbd {
 .steps {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 34px;
+  gap: 44px;
   margin: 0;
   padding: 0 8px;
   list-style: none;
@@ -1216,35 +1194,15 @@ kbd {
   border-radius: 20px;
   background: #fffdf9;
   box-shadow: 0 2px 0 var(--line), 0 14px 30px #7a5a3c14;
-  rotate: -1.6deg;
-  transition:
-    rotate 0.35s cubic-bezier(0.3, 1.5, 0.5, 1),
-    translate 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
-}
-.steps li:nth-child(1) {
-  z-index: 4;
-}
-.steps li:nth-child(2) {
-  z-index: 3;
-  rotate: 1.4deg;
-  translate: 0 14px;
-}
-.steps li:nth-child(3) {
-  z-index: 2;
-  rotate: -0.8deg;
-}
-.steps li:nth-child(4) {
-  rotate: 1.8deg;
-  translate: 0 10px;
+  transition: translate 0.25s ease;
 }
 .steps li:hover {
-  rotate: 0deg;
-  translate: 0 -4px;
+  translate: 0 -3px;
 }
 .sketch {
   display: grid;
   place-items: center;
-  height: 96px;
+  height: 112px;
   margin-bottom: 16px;
   border-radius: 14px;
   background: radial-gradient(120% 90% at 50% 0%, #fbf5ec, #f3eadc);
@@ -1356,26 +1314,21 @@ kbd {
 .hop-down {
   fill: none;
   stroke: var(--coral);
-  stroke-width: 2.2;
+  stroke-width: 1.8;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
 .hop {
   position: absolute;
-  top: 40px;
-  right: -44px;
-  width: 54px;
-  height: 27px;
-  fill: none;
-  stroke: var(--coral);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  top: 60px;
+  right: -37px;
+  width: 30px;
+  height: 16px;
   z-index: 1;
 }
 .privacy {
   max-width: 40em;
-  margin: 36px auto 0;
+  margin: 28px auto 0;
   font-size: 14px;
   line-height: 1.6;
   color: var(--soft);
@@ -1387,55 +1340,36 @@ kbd {
 
 /* For your agent: the CLI, with a terminal that types itself */
 .cli {
-  display: grid;
-  grid-template-columns: 0.9fr 1.1fr;
-  gap: 56px;
-  align-items: center;
   max-width: 1120px;
-  margin: 150px auto 0;
-}
-.cli .label {
-  text-align: left;
+  margin: 110px auto 0;
+  text-align: center;
 }
 .cli h2 {
-  margin: 14px 0 18px;
+  margin: 14px 0 16px;
   font: 400 clamp(34px, 4.4vw, 54px) / 1.1 var(--serif);
   font-variation-settings: "SOFT" 100;
   letter-spacing: -0.03em;
 }
 .cli-lede {
+  max-width: 40em;
+  margin: 0 auto 44px;
   font-size: 17px;
   line-height: 1.55;
   color: var(--soft);
 }
 .cli-lede code {
-  font-size: 15px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #f3ece0;
+  font-size: 14.5px;
   color: var(--ink);
 }
-.commands {
-  display: grid;
-  gap: 2px;
-  margin: 28px 0 0;
-}
-.commands div {
-  display: grid;
-  grid-template-columns: 13.5em 1fr;
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid var(--line);
-  font-size: 14px;
-}
-.commands dt {
-  font-family: var(--mono);
-  font-size: 13px;
-  color: var(--ink);
-}
-.commands dd {
-  margin: 0;
-  color: var(--soft);
-}
-/* A real terminal window: straight, a title bar, a dark theme. */
+/* A terminal window: straight, a dark theme. */
 .terminal {
+  max-width: 760px;
+  margin: 0 auto;
+  text-align: left;
   overflow: hidden;
   border-radius: 12px;
   background: #16171d;
@@ -1445,41 +1379,9 @@ kbd {
     0 22px 50px -12px #1a120c66,
     0 2px 6px #1a120c33;
 }
-.term-bar {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 30px;
-  padding: 0 12px;
-  background: #28282b;
-  border-bottom: 1px solid #000;
-}
-.term-bar i {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #ff5f57;
-  box-shadow: inset 0 0 0 0.5px #00000033;
-}
-.term-bar i:nth-child(2) {
-  background: #febc2e;
-}
-.term-bar i:nth-child(3) {
-  background: #28c840;
-}
-.term-bar span {
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font: 500 12px -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #a1a1aa;
-  pointer-events: none;
-}
 .term-body {
   min-height: 330px;
-  padding: 12px 14px;
+  padding: 18px 20px;
   font: 12.5px/1.6 "SF Mono", ui-monospace, Menlo, var(--mono);
   color: #d4d4d8;
 }
@@ -1489,41 +1391,41 @@ kbd {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
-.term-body .ps,
-.term-body .prompt {
-  color: #8b8b94;
+/* What you type: a path, the prompt and the command. What comes back is quieter, with the markers in coral. */
+.term-body .ps {
+  color: #7fb4ff;
 }
-.term-body .h,
-.term-body b {
+.term-body .prompt {
+  color: #ff6f5e;
+}
+.term-body .typed {
+  color: #fafafa;
+  font-weight: 600;
+}
+.term-body .out {
+  color: #b4b4bc;
+}
+.term-body .h {
   color: #fafafa;
   font-weight: 600;
 }
 .term-body em {
   font-style: normal;
-  color: inherit;
+  font-weight: 600;
+  color: #ff6f5e;
 }
 .term-body .dim {
   color: #71717a;
 }
-/* Typing, then the report line by line, once it scrolls into view */
-.typed {
-  display: inline-block;
-  vertical-align: bottom;
-  overflow: hidden;
-  width: 0;
-  white-space: nowrap;
+.term-body .file {
+  padding-left: 2ch;
+  color: #8fd19e;
 }
-.seen .typed {
-  animation: type 0.9s steps(20) 0.3s forwards;
+.term-body .gap {
+  height: 0.8em;
 }
-.out,
-.later {
-  opacity: 0;
-}
-.seen .out,
-.seen .later {
-  animation: line 0.3s ease-out forwards;
-  animation-delay: calc(1.4s + var(--d) * 0.28s);
+.term-body .cmd {
+  margin-bottom: 8px;
 }
 .caret {
   display: inline-block;
@@ -1531,27 +1433,6 @@ kbd {
   height: 15px;
   vertical-align: -3px;
   background: #d4d4d8;
-  animation: blink 1s steps(1) infinite;
-}
-@keyframes type {
-  to {
-    width: 20ch;
-  }
-}
-@keyframes line {
-  from {
-    opacity: 0;
-    translate: 0 4px;
-  }
-  to {
-    opacity: 1;
-    translate: 0;
-  }
-}
-@keyframes blink {
-  50% {
-    opacity: 0;
-  }
 }
 
 footer {
@@ -1634,7 +1515,7 @@ footer .x svg {
 
 @media (max-width: 900px) {
   .intro {
-    padding: 100px 0 40px;
+    padding: 56px 0 40px;
   }
   .hero-icon {
     width: 96px;
@@ -1647,7 +1528,7 @@ footer .x svg {
     padding: 0 16px;
   }
   .intro {
-    padding: 64px 0 40px;
+    padding: 40px 0 32px;
   }
   .lede {
     font-size: 16px;
@@ -1789,13 +1670,7 @@ footer .x svg {
     margin-top: 90px;
   }
   .cli {
-    grid-template-columns: 1fr;
-    gap: 32px;
     margin-top: 90px;
-  }
-  .commands div {
-    grid-template-columns: 1fr;
-    gap: 2px;
   }
   .term-body {
     min-height: 0;
@@ -1851,13 +1726,6 @@ footer .x svg {
   .tick path,
   .doodle {
     stroke-dashoffset: 0;
-  }
-  .typed {
-    width: auto;
-  }
-  .out,
-  .later {
-    opacity: 1;
   }
   .cursor {
     display: none;

@@ -4,11 +4,11 @@
   const pens = [...demo.querySelectorAll(".pen")];
   const cursor = demo.querySelector(".cursor");
   const meter = [...demo.querySelectorAll(".meter i")];
-  // On phones the screen runs past both edges, but the window keeps its size: scaled down by
-  // as much as the screen is scaled up (135%), so it stays in view.
+  // On phones the screen runs past both edges (135% wide), and the window runs off them too:
+  // its content fills the visible middle, and its sides and bottom are cropped, like the video.
   if (matchMedia("(max-width: 600px)").matches) {
     demo.querySelectorAll("[transform='translate(400 221) scale(1.122) translate(-400 -199)']").forEach((g) =>
-      g.setAttribute("transform", "translate(400 222) scale(0.66) translate(-400 -199)"),
+      g.setAttribute("transform", "translate(400 203) scale(0.88) translate(-400 -199)"),
     );
   }
   // The window sits on the wallpaper (moved and scaled): marks and the cursor live in its coordinates.
@@ -269,5 +269,5 @@
       seen.unobserve(entry.target);
     }
   }, { threshold: 0.35 });
-  document.querySelectorAll(".tile, .terminal").forEach((el) => seen.observe(el));
+  document.querySelectorAll(".tile").forEach((el) => seen.observe(el));
 })();
