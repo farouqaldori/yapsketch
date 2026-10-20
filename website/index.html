@@ -33,8 +33,8 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400,100&family=Geist:wght@400;500&family=Geist+Mono&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=1" />
-    <script src="main.js?v=1" defer></script>
+    <link rel="stylesheet" href="style.css?v=4" />
+    <script src="main.js?v=7" defer></script>
   </head>
   <body>
     <main>
@@ -65,9 +65,9 @@
           <svg class="screen" viewBox="0 0 800 450" role="img" aria-labelledby="scene-title scene-desc">
             <title id="scene-title">Talk, draw, and point at your screen</title>
             <desc id="scene-desc">
-              While talking, the pen circles a card's off-centre text (marker 1), draws around a card
-              that doesn't match the others (marker 2), and draws an arrow at a small button (marker 3).
-              YapSketch copies the words with a picture for each marker.
+              While talking, the pen circles a badge that overlaps a number (marker 1), a broken image
+              (marker 2) and a tooltip the chart cuts off (marker 3). YapSketch turns the words into a
+              report with a picture for each marker.
             </desc>
 <defs>
                           <clipPath id="screen-clip"><rect width="800" height="450" rx="24" /></clipPath>
@@ -86,9 +86,9 @@
             <image href="wallpaper.jpg" width="800" height="450" preserveAspectRatio="xMidYMid slice" clip-path="url(#screen-clip)" />
             <rect x=".5" y=".5" width="799" height="449" rx="24" fill="none" stroke="#00000014" />
             <g class="menubar">
-              <rect x="14" y="12" width="40" height="26" rx="8" />
+              <rect x="14" y="12" width="40" height="26" rx="12" />
               <path transform="translate(27 18) scale(.58)" d="M12.15 6.9c-.95 0-2.42-1.08-3.96-1.04-2.04.03-3.91 1.18-4.96 3.01-2.12 3.68-.55 9.1 1.52 12.09 1.01 1.45 2.21 3.09 3.79 3.04 1.52-.07 2.09-.99 3.94-.99 1.83 0 2.35.99 3.96.95 1.64-.03 2.68-1.48 3.68-2.95 1.16-1.69 1.64-3.33 1.66-3.42-.04-.01-3.18-1.22-3.22-4.86-.03-3.04 2.48-4.49 2.6-4.56-1.43-2.09-3.62-2.32-4.39-2.38-2-.16-3.68 1.09-4.61 1.09zM15.53 3.83c.84-1.01 1.4-2.43 1.25-3.83-1.21.05-2.66.81-3.53 1.82-.78.9-1.45 2.34-1.27 3.71 1.34.1 2.72-.69 3.56-1.7" />
-              <rect class="clock-pill" x="640" y="12" width="146" height="26" rx="8" />
+              <rect class="clock-pill" x="640" y="12" width="146" height="26" rx="12" />
 <g class="right-items">
               <circle class="menu-light" cx="656" cy="25" r="3.4" />
               <g class="glyph" transform="translate(676 25)">
@@ -104,68 +104,94 @@
               <text x="714" y="29" class="mono clock">Fri 9:41</text>
               </g>
             </g>
-            <g class="desk" transform="translate(400 214) scale(0.88) translate(-400 -199)">
-              <!-- A browser window, macOS 27 style: round corners, one bar -->
-              <rect x="80" y="70" width="640" height="292" rx="30" fill="#2a1d14" opacity=".3" filter="url(#window-shadow)" />
-              <rect x="56" y="50" width="688" height="298" rx="20" fill="#fffdf9" stroke="#2a1d14" stroke-opacity=".08" />
-              <circle cx="78" cy="67" r="4" fill="#ff6b5e" />
-              <circle cx="91" cy="67" r="4" fill="#ffc53d" />
-              <circle cx="104" cy="67" r="4" fill="#5fcf80" />
-              <rect x="320" y="58" width="160" height="18" rx="9" fill="#f4eee5" />
-              <text x="400" y="70.5" text-anchor="middle" fill="#9a907f" font-size="8.5" class="mono">localhost:3000</text>
+            <g class="desk" transform="translate(400 221) scale(1.122) translate(-400 -199)">
+              <defs>
+                <clipPath id="win-clip"><rect x="56" y="50" width="688" height="440" rx="20" /></clipPath>
+                <clipPath id="chart-clip"><rect x="76" y="234" width="344" height="140" rx="14" /></clipPath>
+                <linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#5a4331" stop-opacity=".18" /><stop offset="1" stop-color="#5a4331" stop-opacity="0" /></linearGradient>
+                <linearGradient id="fig" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#8a5a45" /><stop offset="1" stop-color="#4a2f20" /></linearGradient>
+                <linearGradient id="iris" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#93a6c4" /><stop offset="1" stop-color="#566b92" /></linearGradient>
+                <linearGradient id="amber" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d9a964" /><stop offset="1" stop-color="#a8692f" /></linearGradient>
+              </defs>
+              <!-- A browser window: Vesper, a perfume studio's dashboard, running off the bottom -->
+              <rect x="80" y="70" width="640" height="420" rx="30" fill="#2a1d14" opacity=".3" filter="url(#window-shadow)" />
+              <rect x="56" y="50" width="688" height="440" rx="20" fill="#f3eee6" />
+              <g clip-path="url(#win-clip)">
+                <rect x="56" y="50" width="688" height="32" fill="#f0ebe9" />
+                <circle cx="78" cy="66" r="4" fill="#ff6b5e" />
+                <circle cx="91" cy="66" r="4" fill="#ffc53d" />
+                <circle cx="104" cy="66" r="4" fill="#5fcf80" />
+                <rect x="320" y="57" width="160" height="18" rx="9" fill="#e4dedb" />
+                <text x="400" y="69.5" text-anchor="middle" fill="#8c8277" font-size="8.5">vesper.studio</text>
 
-              <!-- The page being talked about -->
-              <rect x="80" y="98" width="14" height="14" rx="4.5" fill="#ff5240" />
-              <text x="100" y="109" fill="#23263a" font-size="12" font-weight="500">Studio</text>
-              <g font-size="10" fill="#9a907f">
-                <text x="292" y="109" fill="#23263a">Overview</text>
-                <text x="352" y="109">Projects</text>
-                <text x="408" y="109">Team</text>
-              </g>
-              <rect x="600" y="96" width="78" height="20" rx="10" fill="#23263a" />
-              <text x="639" y="109" text-anchor="middle" fill="#fffdf9" font-size="9">New project</text>
-              <circle cx="702" cy="106" r="10" fill="#ffd7b5" />
-              <text x="702" y="109.5" text-anchor="middle" fill="#8a4b2a" font-size="9" font-weight="500">S</text>
+                <rect x="76" y="90" width="180" height="20" rx="7" fill="#fffdf9" stroke="#e8dfd2" />
+                <text x="86" y="103.5" fill="#8c8277" font-size="7.5">⌕ Search orders, scents, people</text>
+                <rect x="528" y="90" width="82" height="20" rx="7" fill="#fffdf9" stroke="#e8dfd2" />
+                <text x="569" y="103.5" text-anchor="middle" fill="#2b2622" font-size="7.5" font-weight="600">↻ Sync with Shopify</text>
+                <rect x="620" y="90" width="64" height="20" rx="7" fill="#5a4331" />
+                <text x="652" y="103.5" text-anchor="middle" fill="#fff" font-size="7.5" font-weight="600">+ New batch</text>
+                <circle cx="708" cy="100" r="10" fill="#b88a4a" />
+                <text x="708" y="103.2" text-anchor="middle" fill="#fff" font-size="8.5" font-weight="700">C</text>
 
-              <text x="80" y="148" fill="#23263a" font-size="19" class="serif">Good morning, Sam</text>
-              <text x="80" y="164" fill="#9a907f" font-size="9.5">Here’s what’s happening in your studio.</text>
+                <text x="76" y="142" fill="#2b2622" font-size="21" class="serif">Good morning, Camille</text>
+                <text x="76" y="156" fill="#8c8277" font-size="8.5">Friday ship day. Here’s how the atelier is doing.</text>
+                                <rect x="76" y="166" width="154" height="58" rx="11" fill="#fffdf9" stroke="#e8dfd2" />
+                <text x="89" y="181" fill="#8c8277" font-size="7.5">Revenue</text>
+                <rect x="179.4" y="173" width="37.6" height="12" rx="6" fill="#efe3d1" /><text x="198.2" y="181.5" text-anchor="middle" fill="#5a4331" font-size="6.5" font-weight="600">+12.4%</text>
+                <text x="89" y="206" fill="#2b2622" font-size="18" font-weight="600" letter-spacing="-.4">$48,210</text>
+                <path d="M89.0 219.0L103.0 217.0L117.0 218.0L131.0 215.0L145.0 216.0L159.0 213.0L173.0 214.0L187.0 211.0L201.0 212.0L215.0 209.0" fill="none" stroke="#7b5c42" stroke-width="1.2" stroke-linejoin="round" />
+                <rect x="241" y="166" width="154" height="58" rx="11" fill="#fffdf9" stroke="#e8dfd2" />
+                <text x="254" y="181" fill="#8c8277" font-size="7.5">Clients</text>
+                <text x="254" y="206" fill="#2b2622" font-size="18" font-weight="600" letter-spacing="-.4">2,418</text>
+                <path d="M254.0 219.0L268.0 219.0L282.0 218.0L296.0 217.0L310.0 217.0L324.0 216.0L338.0 214.0L352.0 214.0L366.0 213.0L380.0 211.0" fill="none" stroke="#7b5c42" stroke-width="1.2" stroke-linejoin="round" />
+                <rect x="405" y="166" width="154" height="58" rx="11" fill="#fffdf9" stroke="#e8dfd2" />
+                <text x="418" y="181" fill="#8c8277" font-size="7.5">Returns</text>
+                <rect x="513.0" y="173" width="33.0" height="12" rx="6" fill="#fbe9e4" /><text x="529.5" y="181.5" text-anchor="middle" fill="#c8503a" font-size="6.5" font-weight="600">+0.6%</text>
+                <text x="418" y="206" fill="#2b2622" font-size="18" font-weight="600" letter-spacing="-.4">3.1%</text>
+                <path d="M418.0 217.0L432.0 219.0L446.0 218.0L460.0 219.0L474.0 216.0L488.0 216.0L502.0 217.0L516.0 214.0L530.0 213.0L544.0 213.0" fill="none" stroke="#7b5c42" stroke-width="1.2" stroke-linejoin="round" />
+                <rect x="570" y="166" width="154" height="58" rx="11" fill="#fffdf9" stroke="#e8dfd2" />
+                <text x="583" y="181" fill="#8c8277" font-size="7.5">Next blend in</text>
+                <text x="583" y="206" fill="#2b2622" font-size="18" font-weight="600" letter-spacing="-.4">2:14:01</text>
+                <text x="583" y="215" fill="#a39a8e" font-size="6.5">Fig &amp; Smoke · 4.8 L</text>
+                <rect x="284" y="190" width="24" height="12" rx="6" fill="#efe3d1" /><text x="296" y="198.5" text-anchor="middle" fill="#5a4331" font-size="6.5" font-weight="600">+86</text>
 
-              <!-- Projects: its text sits off-centre -->
-              <rect x="80" y="180" width="220" height="150" rx="14" fill="#fbf7f0" stroke="#ece2d2" />
-              <rect x="92" y="192" width="196" height="64" rx="9" fill="url(#peach)" />
-              <path d="M178 214h44M178 224h30M178 234h38" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8" />
-              <text x="214" y="280" text-anchor="middle" fill="#23263a" font-size="14">Projects</text>
-              <text x="214" y="297" text-anchor="middle" fill="#8f8778" font-size="9.5">12 active · 3 due this week</text>
+                <rect x="76" y="234" width="344" height="140" rx="14" fill="#fffdf9" stroke="#e8dfd2" />
+                <text x="90" y="251" fill="#8c8277" font-size="7.5">Revenue, last 30 days</text>
+                <text x="406" y="251" text-anchor="end" fill="#8c8277" font-size="7.5">$1,607 / day avg</text>
+                <g clip-path="url(#chart-clip)">
+                  <path d="M90 270H406M90 300H406M90 330H406" stroke="#e8dfd2" stroke-width=".8" />
+                  <path d="M92 326L104 314L120 309L136 306L150 305L160 293L172 294L188 299L204 306L216 311L228 303L244 311L258 318L272 323L284 319L298 322L312 324L326 324L338 315L352 310L366 306L380 300L392 291L404 288L404 364L92 364Z" fill="url(#area)" />
+                  <path d="M92 326L104 314L120 309L136 306L150 305L160 293L172 294L188 299L204 306L216 311L228 303L244 311L258 318L272 323L284 319L298 322L312 324L326 324L338 315L352 310L366 306L380 300L392 291L404 288" fill="none" stroke="#5a4331" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" />
+                  <!-- Hover: a dot, a guide and a tooltip the chart's edge cuts off -->
+                  <g class="tip">
+                    <path d="M392 262V348" stroke="#5a4331" stroke-width=".9" stroke-dasharray="2 2" />
+                    <circle cx="392" cy="291" r="3.2" fill="#5a4331" stroke="#fff" stroke-width="1.4" />
+                    <rect x="402" y="268" width="52" height="28" rx="6" fill="#2b2622" />
+                    <text x="410" y="279" fill="#fff" font-size="6.6">Oct 18</text>
+                    <text x="410" y="290" fill="#fff" font-size="9" font-weight="600">$2,166</text>
+                  </g>
+                </g>
 
-              <!-- Activity: a different card altogether -->
-              <rect x="320" y="180" width="220" height="150" rx="5" fill="#fff" stroke="#e4d9c7" stroke-dasharray="3 3" />
-              <text x="336" y="204" fill="#23263a" font-size="13">Activity</text>
-              <g fill="#efe7da">
-                <circle cx="342" cy="228" r="7" fill="#ffd7b5" />
-                <rect x="356" y="223" width="120" height="5" rx="2.5" />
-                <rect x="356" y="231" width="76" height="4" rx="2" />
-                <circle cx="342" cy="256" r="7" fill="#d9e7ff" />
-                <rect x="356" y="251" width="104" height="5" rx="2.5" />
-                <rect x="356" y="259" width="88" height="4" rx="2" />
-                <circle cx="342" cy="284" r="7" fill="#d7f0df" />
-                <rect x="356" y="279" width="128" height="5" rx="2.5" />
-                <rect x="356" y="287" width="64" height="4" rx="2" />
-              </g>
-
-              <!-- Team: how a card should look -->
-              <rect x="560" y="180" width="160" height="150" rx="14" fill="#fbf7f0" stroke="#ece2d2" />
-              <rect x="572" y="192" width="136" height="64" rx="9" fill="url(#lilac)" />
-              <g fill="#fff" opacity=".85">
-                <circle cx="626" cy="224" r="9" /><circle cx="640" cy="224" r="9" /><circle cx="654" cy="224" r="9" />
-              </g>
-              <text x="640" y="280" text-anchor="middle" fill="#23263a" font-size="14">Team</text>
-              <text x="640" y="297" text-anchor="middle" fill="#8f8778" font-size="9.5">5 members</text>
+                <rect x="432" y="234" width="292" height="140" rx="14" fill="#fffdf9" stroke="#e8dfd2" />
+                <text x="444" y="251" fill="#8c8277" font-size="7.5">Batches</text>
+                <text x="712" y="251" text-anchor="end" fill="#8c8277" font-size="7.5">Maceraton</text>
+                                <rect x="444" y="265" width="16" height="16" rx="5" fill="url(#fig)" />
+                <text x="468" y="272" fill="#2b2622" font-size="8" font-weight="600">Fig &amp; Smoke</text><text x="468" y="280.5" fill="#8c8277" font-size="6.6">Day 21 of 28 · parfum</text><text x="712" y="276" text-anchor="end" fill="#2b2622" font-size="8" font-weight="600">92%</text>
+                <path d="M444 286H712" stroke="#e8dfd2" stroke-width=".8" />
+                <rect x="444" y="289" width="16" height="16" rx="5" fill="url(#iris)" />
+                <text x="468" y="296" fill="#2b2622" font-size="8" font-weight="600">Iris Nocturne</text><text x="468" y="304.5" fill="#8c8277" font-size="6.6">Day 14 of 28 · eau de parfum</text><text x="712" y="300" text-anchor="end" fill="#2b2622" font-size="8" font-weight="600">64%</text>
+                <path d="M444 310H712" stroke="#e8dfd2" stroke-width=".8" />
+                <rect x="444" y="313" width="16" height="16" rx="5" fill="#fff" stroke="#e3dccf" /><rect x="448.5" y="317.5" width="7" height="7" rx="1" fill="#3b8fd0" /><text x="452" y="323" text-anchor="middle" fill="#fff" font-size="5" font-weight="700">?</text>
+                <text x="468" y="320" fill="#2b2622" font-size="8" font-weight="600">Cedar Rain</text><text x="468" y="328.5" fill="#8c8277" font-size="6.6">Day 9 of 21 · eau de toilette</text><text x="712" y="324" text-anchor="end" fill="#2b2622" font-size="8" font-weight="600">31%</text>
+                <path d="M444 334H712" stroke="#e8dfd2" stroke-width=".8" />
+                <rect x="444" y="337" width="16" height="16" rx="5" fill="url(#amber)" />
+                <text x="468" y="344" fill="#2b2622" font-size="8" font-weight="600">Amber Dusk</text><text x="468" y="352.5" fill="#8c8277" font-size="6.6">Day 2 of 28 · parfum</text><text x="712" y="348" text-anchor="end" fill="#2b2622" font-size="8" font-weight="600">12%</text>
+                </g>
             </g>
-            <g transform="translate(400 214) scale(0.88) translate(-400 -199)">
-              <path class="pen" d="M162 264C180 250 264 250 282 268C300 288 270 310 216 310C168 311 144 298 146 283C148 270 162 261 188 258" />
-              <path class="pen" d="M330 172C390 166 470 168 538 174C552 176 552 190 550 214C548 260 552 300 548 322C546 336 530 338 500 337C430 335 370 338 330 336C314 335 310 324 311 300C313 250 309 210 312 186C313 176 320 172 342 171" />
-              <path class="pen" d="M702 178C708 156 700 138 670 122" />
-              <path class="pen" d="M675 132L670 122L681 121" />
+            <g transform="translate(400 221) scale(1.122) translate(-400 -199)">
+              <path class="pen" d="M258.3 186.0L260.4 185.3L262.7 184.6L265.0 184.0L267.5 183.5L270.0 183.0L272.6 182.7L275.2 182.4L277.9 182.1L280.6 182.0L283.3 181.9L286.1 181.9L288.8 182.0L291.5 182.2L294.2 182.4L296.9 182.8L299.4 183.2L301.9 183.6L304.4 184.2L306.7 184.8L309.0 185.5L311.1 186.2L313.1 187.0L314.9 187.9L316.7 188.8L318.2 189.8L319.6 190.8L320.9 191.8L322.0 192.9L322.9 194.0L323.6 195.2L324.2 196.3L324.5 197.5L324.7 198.7L324.7 199.8L324.4 201.0L324.1 202.2L323.5 203.3L322.7 204.5L321.7 205.6L320.6 206.7L319.3 207.7L317.9 208.7L316.2 209.7L314.5 210.6L312.5 211.5L310.5 212.3L308.3 213.0L306.0 213.7L303.6 214.3L301.1 214.8L298.6 215.3L295.9 215.7L293.2 216.0L290.5 216.3L287.7 216.4L284.9 216.5L282.1 216.5L279.3 216.4L276.5 216.2L273.8 216.0L271.1 215.7L268.4 215.2L265.8 214.8L263.3 214.2L260.9 213.6L258.6 212.9L256.5 212.1L254.4 211.3L252.5 210.4L250.7 209.5L249.1 208.5L247.6 207.5L246.3 206.4L245.2 205.3L244.3 204.2L243.5 203.0L242.9 201.8L242.6 200.6L242.4 199.4L242.4 198.2L242.6 197.0L243.0 195.8L243.5 194.6L244.3 193.5L245.3 192.3L246.4 191.2L247.7 190.2L249.2 189.1L250.9 188.1L252.7 187.2L254.6 186.3L256.7 185.5L258.9 184.7L261.3 184.0L263.7 183.4L266.3 182.8" />
+              <path class="pen" d="M441.1 308.0L442.0 307.3L442.9 306.6L443.9 306.0L445.0 305.5L446.0 305.0L447.1 304.7L448.3 304.4L449.4 304.1L450.6 304.0L451.7 303.9L452.9 303.9L454.0 304.0L455.2 304.2L456.3 304.4L457.5 304.8L458.6 305.2L459.6 305.6L460.7 306.2L461.7 306.8L462.6 307.5L463.5 308.2L464.4 309.0L465.1 309.9L465.9 310.8L466.5 311.8L467.2 312.8L467.7 313.8L468.1 314.9L468.5 316.0L468.8 317.2L469.1 318.3L469.2 319.5L469.3 320.7L469.3 321.8L469.2 323.0L469.0 324.2L468.8 325.3L468.4 326.5L468.0 327.6L467.6 328.7L467.0 329.7L466.4 330.7L465.7 331.7L464.9 332.6L464.1 333.5L463.3 334.3L462.3 335.0L461.4 335.7L460.3 336.3L459.3 336.8L458.2 337.3L457.1 337.7L455.9 338.0L454.8 338.3L453.6 338.4L452.4 338.5L451.2 338.5L450.0 338.4L448.8 338.2L447.6 338.0L446.5 337.7L445.4 337.2L444.3 336.8L443.2 336.2L442.2 335.6L441.2 334.9L440.3 334.1L439.4 333.3L438.6 332.4L437.8 331.5L437.2 330.5L436.5 329.5L436.0 328.4L435.5 327.3L435.1 326.2L434.8 325.0L434.5 323.8L434.4 322.6L434.3 321.4L434.3 320.2L434.4 319.0L434.6 317.8L434.8 316.6L435.1 315.5L435.5 314.3L436.0 313.2L436.6 312.2L437.2 311.1L437.9 310.1L438.7 309.2L439.5 308.3L440.4 307.5L441.3 306.7L442.3 306.0L443.4 305.4L444.5 304.8" />
+              <path class="pen" d="M391.9 262.3L393.0 261.2L394.3 260.1L395.6 259.2L396.9 258.4L398.3 257.6L399.7 257.0L401.2 256.6L402.6 256.2L404.1 256.0L405.6 255.9L407.1 255.9L408.6 256.0L410.1 256.3L411.6 256.7L413.1 257.2L414.5 257.8L415.9 258.6L417.2 259.5L418.5 260.5L419.7 261.5L420.9 262.7L422.0 264.0L423.0 265.4L424.0 266.8L424.8 268.4L425.6 270.0L426.3 271.6L426.9 273.4L427.4 275.1L427.8 276.9L428.1 278.8L428.3 280.6L428.4 282.5L428.4 284.3L428.2 286.2L428.0 288.1L427.7 289.9L427.3 291.7L426.8 293.5L426.1 295.2L425.4 296.9L424.6 298.5L423.7 300.0L422.8 301.4L421.7 302.8L420.6 304.1L419.4 305.3L418.1 306.3L416.8 307.3L415.4 308.2L414.0 308.9L412.6 309.5L411.1 310.0L409.6 310.4L408.0 310.7L406.5 310.8L405.0 310.8L403.4 310.6L401.9 310.4L400.4 310.0L398.9 309.5L397.4 308.8L396.0 308.0L394.6 307.2L393.3 306.2L392.0 305.1L390.8 303.9L389.7 302.6L388.7 301.2L387.7 299.7L386.8 298.1L386.0 296.5L385.3 294.8L384.7 293.0L384.1 291.2L383.7 289.4L383.4 287.5L383.2 285.6L383.1 283.7L383.1 281.8L383.2 279.9L383.4 278.0L383.8 276.1L384.2 274.2L384.7 272.4L385.3 270.7L386.1 269.0L386.9 267.3L387.8 265.7L388.8 264.2L389.8 262.8L391.0 261.5L392.2 260.3L393.5 259.2L394.8 258.2L396.2 257.3" />
             </g>
           </svg>
           <!-- Dims the screen while the pasted card is up -->
@@ -181,48 +207,42 @@
             <div class="record-tools">
               <span class="tool pointer-tool"><svg viewBox="0 0 20 20"><path d="m5 3 10 8-5 1-2 5Z" /></svg></span>
               <span class="tool pen-tool"><svg viewBox="0 0 20 20"><path d="m4 13 9-9 3 3-9 9-4 1ZM11 6l3 3" /></svg></span>
-              <span class="tool"><svg viewBox="0 0 20 20"><path d="m4 16 12-12M8 4h8v8" /></svg></span>
-              <span class="tool"><svg viewBox="0 0 20 20"><rect x="4" y="5" width="12" height="10" rx="2" /></svg></span>
-              <span class="tool text-tool">T</span><span class="divider"></span>
-              <span class="colours"><i></i><i></i><i></i><i></i><i></i></span><span class="divider"></span>
-              <span class="tool"><svg viewBox="0 0 20 20"><path d="M4 6h12M8 3h4M6 6l1 10h6l1-10M9 9v4M11 9v4" /></svg></span>
+              <span class="divider"></span>
+              <span class="colours"><i></i><i></i><i></i></span>
               <span class="stop"><i></i></span>
             </div>
             <div class="processing" aria-label="Processing"><span class="spinner"></span></div>
             <div class="copied">
               <svg class="tick" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" /><path d="M7 12.4l3.3 3.3L17.2 9" /></svg>
-              <span>Copied to clipboard!</span>
+              <span>Report ready</span><span class="copy">Copy</span>
             </div>
           </div>
-          <!-- From the clipboard to the agent -->
-          <svg class="connector" aria-hidden="true">
-            <defs>
-              <mask id="connector-reveal" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
-                <path class="reveal" />
-              </mask>
-            </defs>
-            <path class="dots" mask="url(#connector-reveal)" />
-          </svg>
           <div class="handoff">
             <div class="output">
-              <p class="output-top">Pasted into your agent</p>
-              <p>
-                As you can see here these are not centered properly <span class="reference">[1]</span> and this one
-                should match it <span class="reference">[2]</span>. Also make this button bigger <span class="reference">[3]</span>
-              </p>
-              <div class="thumbs" aria-label="A picture for each point">
-                <span class="thumb"><svg viewBox="0 0 72 46" aria-hidden="true"><rect x="8" y="10" width="24" height="26" rx="4" /><rect x="40" y="10" width="24" height="26" rx="4" /><ellipse class="mark" cx="20" cy="28" rx="13" ry="6" /></svg><b>1</b></span>
-                <span class="thumb"><svg viewBox="0 0 72 46" aria-hidden="true"><rect x="8" y="10" width="24" height="26" rx="4" /><rect x="40" y="10" width="24" height="26" rx="4" /><rect class="mark" x="37" y="7" width="30" height="32" rx="5" /></svg><b>2</b></span>
-                <span class="thumb"><svg viewBox="0 0 72 46" aria-hidden="true"><rect x="8" y="10" width="24" height="26" rx="4" /><rect x="40" y="10" width="24" height="26" rx="4" /><path class="mark" d="M58 42C62 34 60 26 52 22M54 27l-2-5 5-1" /></svg><b>3</b></span>
+              <div class="report-bar"><i></i><i></i><i></i><span>Screen recording · 0:16</span></div>
+              <div class="report-body">
+                <p>
+                  Okay so I want you to fix a few issues here on my website. This badge overlaps the number <span class="reference">[1]</span>
+                  the image here is broken <span class="reference">[2]</span> and the tooltip on the graph gets cut off
+                  <span class="reference">[3]</span> Fix it all please, and yeah, make no mistakes.
+                </p>
+                <div class="pics" aria-label="A picture for each point">
+                  <span class="pic"><img src="report-1.webp" alt="" width="240" height="139" /><b>1</b></span>
+                  <span class="pic"><img src="report-2.webp" alt="" width="240" height="139" /><b>2</b></span>
+                  <span class="pic"><img src="report-3.webp" alt="" width="240" height="139" /><b>3</b></span>
+                </div>
               </div>
             </div>
           </div>
           <!-- The cursor rides above the toolbar, so it can click stop. -->
           <svg class="overlay" viewBox="0 0 800 450" aria-hidden="true">
-            <g transform="translate(400 214) scale(0.88) translate(-400 -199)">
+            <g transform="translate(400 221) scale(1.122) translate(-400 -199)">
               <g class="cursor" transform="translate(440 300)">
-                <path class="arrow-cursor" d="M0 0v19l5-4 4 8 4-2-4-8h7Z" fill="#1d1f2e" stroke="#fff" stroke-width="1.4" stroke-linejoin="round" />
-                <circle class="nib" r="5.5" fill="#ff5240" stroke="#fff" stroke-width="2" />
+                <path class="arrow-cursor" transform="scale(.74)" d="M0 0v19l5-4 4 8 4-2-4-8h7Z" fill="#1d1f2e" stroke="#fff" stroke-width="1.4" stroke-linejoin="round" />
+                <g class="nib" transform="scale(.95)">
+                  <path d="M0 0 3.8-1.4 13.4-11 11-13.4 1.4-3.8Z" fill="#1d1f2e" stroke="#fff" stroke-width="1.3" stroke-linejoin="round" />
+                  <path d="M0 0 3.8-1.4 1.4-3.8Z" fill="#ff5240" />
+                </g>
               </g>
             </g>
           </svg>

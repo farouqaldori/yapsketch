@@ -177,8 +177,9 @@ h1 {
   width: 100%;
   height: auto;
   border-radius: 3% / 5.33%;
-  box-shadow: 0 24px 50px -12px #7a5a3c33;
+  box-shadow: 0 22px 44px -18px #7a5a3c26;
 }
+
 .scrim {
   position: absolute;
   inset: 0;
@@ -210,6 +211,14 @@ h1 {
 }
 .serif {
   font-family: var(--serif);
+}
+.tip {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.tip-on .tip,
+.demo:not(.animated) .tip {
+  opacity: 1;
 }
 .pen {
   fill: none;
@@ -279,7 +288,7 @@ h1 {
   bottom: 3.5%;
   transform: translateX(-50%) scale(var(--k));
   transform-origin: 50% 100%;
-  width: 492px;
+  width: 420px;
   height: 44px;
   display: grid;
   place-items: center;
@@ -464,6 +473,7 @@ h1 {
 }
 .said .line {
   grid-area: 1 / 1;
+  width: 100%;
   display: inline-flex;
   gap: 0.28em;
   font-size: 13px;
@@ -475,6 +485,17 @@ h1 {
 .said .line.now {
   opacity: 1;
   transition-delay: 0.25s;
+}
+/* Once a sentence is too long for the line, older words slide off the left. */
+.said .line.tail {
+  justify-content: flex-end;
+}
+.said {
+  padding-right: 14px;
+  mask-image: linear-gradient(90deg, #000 calc(100% - 16px), transparent);
+}
+.said:has(.now.tail) {
+  mask-image: linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 16px), transparent);
 }
 .said .line span {
   display: none;
@@ -495,7 +516,7 @@ h1 {
   height: 36px;
 }
 .finished .toolbar {
-  width: 196px;
+  width: 230px;
   height: 38px;
 }
 .leaving .toolbar {
@@ -523,6 +544,22 @@ h1 {
   font-weight: 500;
   color: #fff;
 }
+.copy {
+  margin-left: 2px;
+  padding: 3px 10px;
+  border-radius: 99px;
+  background: #ffffff1f;
+  font-weight: 600;
+}
+/* Copy pops when it's pressed. */
+.copying .copy {
+  animation: press 0.4s ease-out;
+}
+@keyframes press {
+  40% {
+    transform: scale(1.14);
+  }
+}
 .tick {
   width: 18px;
   height: 18px;
@@ -549,29 +586,6 @@ h1 {
   animation: draw 0.3s 0.45s ease-out forwards;
 }
 
-/* The dotted line from the clipboard into the agent */
-.connector {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-  pointer-events: none;
-  transition: opacity 0.3s;
-}
-.connector .dots {
-  fill: none;
-  stroke: var(--coral);
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-dasharray: 0 10;
-}
-.connector .reveal {
-  fill: none;
-  stroke: #fff;
-  stroke-width: 14;
-}
-.demo.leaving .connector,
 .demo.leaving .output {
   opacity: 0;
 }
@@ -602,9 +616,9 @@ h1 {
   padding: 0 24px;
 }
 .output {
-  max-width: 600px;
+  max-width: 660px;
   margin: auto;
-  padding: 15px 20px 17px;
+  overflow: hidden;
   border: 1px solid #ffffff99;
   border-radius: 16px;
   background: #fffdf9;
@@ -612,29 +626,110 @@ h1 {
     0 2px 8px #1a120c1f,
     0 28px 60px -12px #1a120c66;
   opacity: 0;
-  transform: scale(0.92) rotate(-0.6deg);
+  transform: translateY(14px) scale(0.96);
   transform-origin: 50% 100%;
   transition:
     opacity 0.4s,
-    transform 0.6s cubic-bezier(0.2, 1.4, 0.4, 1);
+    transform 0.6s cubic-bezier(0.2, 1.1, 0.4, 1);
 }
 .pasted .output,
 .finished:not(.animated) .output {
   opacity: 1;
-  transform: rotate(-0.6deg);
+  transform: none;
 }
-.output .output-top {
-  margin-bottom: 10px;
-  font: 11px var(--mono);
-  color: var(--soft);
+.report-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px;
+  background: #f3efea;
+  font-size: 12px;
+  font-weight: 500;
+  color: #8c8277;
+}
+.report-bar i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #ff6b5e;
+}
+.report-bar i:nth-child(2) {
+  background: #ffc53d;
+}
+.report-bar i:nth-child(3) {
+  background: #5fcf80;
+}
+.report-bar span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  text-align: center;
+}
+.report-body {
+  padding: 16px 20px 18px;
 }
 .output p {
-  font-size: 16px;
+  font-size: 15.5px;
   line-height: 1.6;
 }
 .reference {
   color: var(--coral);
   font: 0.85em var(--mono);
+}
+.pics {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+}
+.pic {
+  position: relative;
+  flex: 1;
+  display: block;
+}
+.pic img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 9px;
+  box-shadow: 0 1px 3px #1a120c1f, 0 6px 14px -4px #1a120c33;
+}
+.pic b {
+  position: absolute;
+  top: -7px;
+  left: -7px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 500;
+}
+/* Pictures arrive one after another once the card is up. */
+.pic {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.35s,
+    transform 0.35s;
+}
+.pasted .pic,
+.finished:not(.animated) .pic {
+  opacity: 1;
+  transform: none;
+}
+.pasted .pic:nth-child(1) {
+  transition-delay: 0.7s;
+}
+.pasted .pic:nth-child(2) {
+  transition-delay: 0.85s;
+}
+.pasted .pic:nth-child(3) {
+  transition-delay: 1s;
 }
 .thumbs {
   display: flex;
@@ -1587,9 +1682,6 @@ footer .x svg {
   .said .line.tail {
     justify-content: flex-end;
   }
-  .said:has(.tail) {
-    mask-image: linear-gradient(90deg, transparent, #000 18px);
-  }
   .record-tools {
     height: 35px;
     left: 16px;
@@ -1632,17 +1724,21 @@ footer .x svg {
     height: 22px;
   }
   .finished .toolbar {
-    width: 196px;
+    width: 212px;
   }
   .copied {
     gap: 7px;
     font-size: 11px;
   }
-  .output {
-    padding: 13px 14px 15px;
+  .report-body {
+    padding: 12px 13px 14px;
   }
   .output p {
-    font-size: 12px;
+    font-size: 11px;
+  }
+  .pics {
+    gap: 8px;
+    margin-top: 10px;
   }
   /* Too small to float over: the card sits under the screen and grows from its top edge. */
   /* The demo runs past both edges of the phone, cropped; the toolbar and the pasted card stay
@@ -1660,15 +1756,6 @@ footer .x svg {
   .handoff {
     bottom: 26px;
     padding: 0 calc(17.5vw + 14px);
-  }
-  .output {
-    padding: 11px 13px 13px;
-  }
-  .output .output-top {
-    margin-bottom: 6px;
-  }
-  .thumbs {
-    margin-top: 10px;
   }
   .features {
     margin-top: 56px;
