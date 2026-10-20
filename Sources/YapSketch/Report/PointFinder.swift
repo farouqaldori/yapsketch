@@ -476,10 +476,17 @@ struct PointFinder {
                 if differs { parts.append([m]) } else { parts[parts.count - 1].append(m) }
             }
             let ws = words.indices.filter { (words[$0].start + words[$0].end) / 2 >= p.start - 0.01 && (words[$0].start + words[$0].end) / 2 <= p.end + 0.01 }
-            guard parts.count > 1, let first = ws.first, let last = ws.last else {
+            guard parts.count > 1 else {
                 var q = p
                 q.index = out.count
                 out.append(q)
+                continue
+            }
+            // Without word timings the text stays with the first part; later parts are just their marks.
+            guard let first = ws.first, let last = ws.last else {
+                for (i, part) in parts.enumerated() {
+                    add(p, i == 0 ? p.start : begun(part[0]), max(i == 0 ? p.end : 0, part.last!.t), i == 0 ? p.text : "", part)
+                }
                 continue
             }
             // Cuts at word gaps: cut i is the first word of part i + 1.

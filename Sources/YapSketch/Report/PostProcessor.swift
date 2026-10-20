@@ -93,16 +93,25 @@ struct PostProcessor {
             ?? transcript.enumerated().map {
                 SegmentAnalysis(index: $0.offset, start: $0.element.start, end: $0.element.end, text: $0.element.text)
             }
-        var points =
-            fresh?.points
-            ?? PointFinder.divide(
-                PointFinder.assign(
-                    marks, to: PointFinder.points(segments, saved: [previous?.segments ?? [], saved]), judged: analysis?.marks ?? []),
-                marks: marks, apart: analysis?.apart ?? [], words: words, splits: analysis?.splits ?? [])
-
         // Small frames and screen changes were noted while recording.
-        step("Taking screenshots…")
         let frameLog = FrameLog.load(from: dir)
+        // Marks on different screens each need their own picture, so a point spanning them is divided there.
+        let screens = frameLog.map { ScreenSplit(session: session, events: events, frames: $0) }
+        var points: [SegmentAnalysis]
+        if let fresh, let made = fresh.points {
+            points = made
+            if let screens {
+                points = PointFinder.divide(points, marks: marks, apart: screens.apart(points, marks: marks), words: words, splits: [])
+            }
+        } else {
+            let assigned = PointFinder.assign(
+                marks, to: PointFinder.points(segments, saved: [previous?.segments ?? [], saved]), judged: analysis?.marks ?? [])
+            points = PointFinder.divide(
+                assigned, marks: marks, apart: (screens?.apart(assigned, marks: marks) ?? []) + (analysis?.apart ?? []), words: words,
+                splits: analysis?.splits ?? [])
+        }
+
+        step("Taking screenshots…")
         let shots = await pictures(
             asset: asset, points: points, events: events, duration: duration, words: words, frames: frameLog, previous: saved)
         for k in points.indices { points[k].n = shots[k]?.n }

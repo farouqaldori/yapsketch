@@ -45,19 +45,8 @@ extension PostProcessor {
         }
         func faded(_ m: SessionEvent) -> Double? { events.first { gone(m, $0) }?.t }
         let drawn = events.filter { $0.kind == .annotation || $0.kind == .textNote }
-        /// The same screen around these marks at `a` and `b`, apart from the user's ink and the
-        /// pointer: what they marked is still where it was. Elsewhere may change (live captions, a
-        /// clock), and a cell or two nearby (a spinner, a hover highlight).
-        func sameScreen(_ a: Double, _ b: Double, marks: [SessionEvent]) async -> Bool {
-            guard let ga = gray(a), let gb = gray(b) else { return false }
-            let around = ScreenDiff.cells(marks.compactMap(area).map { $0.insetBy(dx: -120, dy: -120) }, display: display)
-            let ink = drawn.filter { ($0.t0 ?? $0.t) <= max(a, b) && (faded($0) ?? .infinity) >= min(a, b) }.compactMap(area)
-            let pointer = [session.pointer(at: a), session.pointer(at: b)].compactMap { $0 }.map {
-                CGRect(x: $0.x - 20, y: $0.y - 20, width: 40, height: 40)
-            }
-            let elsewhere = Set(0..<(ScreenDiff.cols * ScreenDiff.rows)).subtracting(around)
-            return ScreenDiff.changed(ga, gb, ignoring: ScreenDiff.cells(ink + pointer, display: display).union(elsewhere)).count <= 2
-        }
+        let split = frames.map { ScreenSplit(session: session, events: events, frames: $0) }
+        func sameScreen(_ a: Double, _ b: Double, marks: [SessionEvent]) -> Bool { split?.sameScreen(a, b, marks: marks) ?? false }
         /// `image` (the screen at `t`) with `ink` put back where it had faded.
         func restoring(_ ink: [SessionEvent], at t: Double, onto image: CGImage) async -> CGImage {
             var image = image
@@ -83,7 +72,7 @@ extension PostProcessor {
         func picture(_ group: [SessionEvent], end: Double, isLast: Bool) async -> Still? {
             let drawings = group.filter { $0.kind != .gesture }
             var times = drawings.map(shown)
-            if let last = group.last, isLast, await sameScreen(shown(last), end, marks: group) { times.append(end) }
+            if let last = group.last, isLast, sameScreen(shown(last), end, marks: group) { times.append(end) }
             // The moment most of its drawings show (the latest if tied); pointing only: the last circle.
             let t = times.max { a, b in
                 let (va, vb) = (drawings.filter { visible($0, at: a) }.count, drawings.filter { visible($0, at: b) }.count)
@@ -163,6 +152,9 @@ extension PostProcessor {
         }
         var stills: [Int: Still] = [:]
         var unmarked: [(key: Int, t: Double, said: String, candidates: [MomentPicker.Candidate])] = []
+        /// The last point with nothing drawn and nothing happening, for when no other point has a picture.
+        var quiet: (k: Int, t: Double, start: Double)?
+        var busy: [(k: Int, t: Double, start: Double, score: Int)] = []
         for (k, p) in points.enumerated() {
             let t = ends[k]
             let start = k > 0 ? ends[k - 1] : 0
@@ -170,7 +162,21 @@ extension PostProcessor {
                 [.annotation, .textNote, .gesture].contains(e.kind) && (p.marks ?? []).contains { abs($0 - e.t) < 0.001 }
             }
             guard !mine.isEmpty else {
-                guard (p.needsScreenshot ?? 1) > 0.5 else { continue }
+                if let judged = p.needsScreenshot {
+                    guard judged > 0.5 else { continue }
+                } else {
+                    // Without Jev: a picture only if something happened (a click, a key, a window, the
+                    // screen changing); the busiest fill the report's budget.
+                    let from = max(start, p.start - 0.3)
+                    let did = events.filter { [.click, .shortcut, .keys, .appSwitch, .window].contains($0.kind) && $0.t > from && $0.t <= t }.count
+                    let changed = (frames?.changes ?? []).filter { $0[0] >= from && $0[0] <= t && $0[1] >= 8 }.reduce(0) { $0 + Int($1[1]) }
+                    if did == 0 && changed == 0 {
+                        quiet = (k, t, start)
+                    } else {
+                        busy.append((k, t, start, did * 20 + changed))
+                    }
+                    continue
+                }
                 let candidates = await momentCandidates(asset: asset, point: p, from: start, to: t, n: k, events: events, frames: frames)
                 unmarked.append((k, t, p.text, candidates))
                 continue
@@ -179,7 +185,7 @@ extension PostProcessor {
             // most drawings (else pointed at most; the latest if tied).
             var groups: [[SessionEvent]] = []
             for m in mine {
-                if let last = groups.last?.last, await sameScreen(shown(last), shown(m), marks: groups[groups.count - 1] + [m]) {
+                if let last = groups.last?.last, sameScreen(shown(last), shown(m), marks: groups[groups.count - 1] + [m]) {
                     groups[groups.count - 1].append(m)
                 } else {
                     groups.append([m])
@@ -192,6 +198,16 @@ extension PostProcessor {
             let next = drawn.filter { d in (d.t0 ?? d.t) > group.last!.t && !group.contains { $0.t == d.t } }.map { $0.t0 ?? $0.t }.min() ?? .infinity
             let end = max(group.map(shown).max()!, min(t, next - 0.1))
             if let still = await picture(group, end: end, isLast: main == groups.count - 1) { stills[k] = still }
+        }
+
+        // Marked points always get a picture; what's left of the budget (6 up to 40 s, one more per
+        // 20 s, 12 at most) goes to the busiest of the rest. A report always has one.
+        let budget = min(12, max(6, 6 + Int((duration - 40) / 20)))
+        var picked = busy.sorted { $0.score > $1.score }.prefix(max(0, budget - stills.count - unmarked.count)).sorted { $0.k < $1.k }
+        if stills.isEmpty, unmarked.isEmpty, picked.isEmpty, let q = quiet { picked = [(q.k, q.t, q.start, 0)] }
+        for q in picked {
+            let candidates = await momentCandidates(asset: asset, point: points[q.k], from: q.start, to: q.t, n: q.k, events: events, frames: frames)
+            unmarked.append((q.k, q.t, points[q.k].text, candidates))
         }
 
         // Points without marks: Jev picks the moment (answers saved as the time by point, and
