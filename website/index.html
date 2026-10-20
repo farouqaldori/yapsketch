@@ -33,7 +33,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400,100&family=Geist:wght@400;500&family=Geist+Mono&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=29" />
+    <link rel="stylesheet" href="style.css?v=33" />
     <script src="main.js?v=10" defer></script>
   </head>
   <body>
@@ -307,11 +307,11 @@
         <div class="cli-copy">
           <h2 id="cli-title">Your agent can dig deeper.</h2>
           <p class="cli-lede">
-            With the <code>yapsketch</code> CLI, your agent gets more details about the report, like when you said each thing
-            and what you drew.
+            With the <code>yapsketch</code> CLI, your agent can look closer: the exact frames around any moment you
+            marked, plus what you said and the full video.
           </p>
         </div>
-        <div class="terminal" aria-label="A terminal running yapsketch show k2vg">
+        <div class="terminal" aria-label="A terminal running yapsketch show and yapsketch frames">
           <div class="term-body">
             <p class="cmd"><span class="ps">~/users/farouqaldori</span> <span class="prompt">❯</span> <span class="typed">yapsketch show k2vg</span></p>
             <p class="out dim">Recording k2vg · ~/Movies/YapSketch/…15-07-41</p>
@@ -329,6 +329,9 @@
             <p class="out file">~/Movies/YapSketch/…15-07-41/shots/3.jpg</p>
             <p class="out gap"></p>
             <p class="out dim">Full video: recording.mp4 · Raw data: events.jsonl</p>
+            <p class="out gap"></p>
+            <p class="cmd"><span class="ps">~/users/farouqaldori</span> <span class="prompt">❯</span> <span class="typed">yapsketch frames k2vg 3</span></p>
+            <p class="out file">~/Movies/YapSketch/…15-07-41/frames/point-3.jpg</p>
             <p class="out gap"></p>
             <p class="later"><span class="ps">~/users/farouqaldori</span> <span class="prompt">❯</span> <span class="caret"></span></p>
           </div>
