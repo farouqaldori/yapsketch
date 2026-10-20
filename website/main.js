@@ -120,14 +120,18 @@
     return u <= 0 ? 0 : u >= 1 ? 1 : 1 - Math.exp(-7 * u) * Math.cos(11 * u);
   };
   function drive(ms) {
-    const L = progress(ms, [T.leave, T.leave + 500]); // everything fades out at the end
+    // At the end the card and the pill go first, quickly, and then what was drawn fades: nothing is ever
+    // see-through over something else.
+    const L = progress(ms, [T.leave, T.leave + 260]);
+    const gone = progress(ms, [T.leave + 100, T.leave + 260]); // solid while it starts to move, then quickly gone
+    const rest = progress(ms, [T.leave + 260, T.leave + 760]);
     const stopped = progress(ms, [T.stopped, T.stopped + 350]);
     const ready = progress(ms, [T.done, T.done + 450]);
     // The toolbar: full, then a spinner's worth, then the report-ready pill.
     toolbar.style.setProperty("--a", stopped.toFixed(4));
     toolbar.style.setProperty("--b", ready.toFixed(4));
-    toolbar.style.scale = (1 - 0.4 * L).toFixed(4);
-    toolbar.style.opacity = (1 - L).toFixed(4);
+    toolbar.style.scale = (1 - 0.08 * L).toFixed(4);
+    toolbar.style.opacity = (1 - gone).toFixed(4);
     const talking = progress(ms, [0, 200]) * (1 - progress(ms, [T.stopped, T.stopped + 150]));
     parts.status.style.opacity = talking.toFixed(3);
     parts.tools.style.opacity = (1 - progress(ms, [T.stopped, T.stopped + 150])).toFixed(3);
@@ -144,18 +148,20 @@
     parts.copy.style.transform = `scale(${(press > 0 && press < 1 ? 1 + 0.14 * Math.sin(Math.PI * press) : 1).toFixed(3)})`;
     // The report window and its pictures.
     const card = progress(ms, [T.pasted, T.pasted + 450]);
-    output.style.opacity = (card * (1 - L)).toFixed(3);
-    output.style.transform = `translateY(${(14 * (1 - card)).toFixed(2)}px) scale(${(0.96 + 0.04 * card).toFixed(4)})`;
+    const cardShown = progress(ms, [T.pasted, T.pasted + 180]); // solid almost at once, then it settles
+    output.style.opacity = (cardShown * (1 - gone)).toFixed(3);
+    output.style.transform = `translateY(${(14 * (1 - card) + 10 * L).toFixed(2)}px) scale(${(0.96 + 0.04 * card - 0.03 * L).toFixed(4)})`;
     parts.pics.forEach((pic, i) => {
       const p = progress(ms, [T.pasted + 700 + i * 150, T.pasted + 1050 + i * 150]);
       pic.style.opacity = p.toFixed(3);
       pic.style.transform = `translateY(${(6 * (1 - p)).toFixed(2)}px)`;
     });
-    parts.scrim.style.opacity = (0.38 * progress(ms, [T.pasted, T.pasted + 500]) * (1 - L)).toFixed(3);
+    parts.scrim.style.opacity = (0.38 * progress(ms, [T.pasted, T.pasted + 500]) * (1 - rest)).toFixed(3);
     // What was drawn: the tooltip, the cursor and the ink.
-    parts.tip.style.opacity = (progress(ms, [T.tip, T.tip + 200]) * (1 - L)).toFixed(3);
+    parts.tip.style.opacity = (progress(ms, [T.tip, T.tip + 200]) * (1 - rest)).toFixed(3);
     cursor.style.opacity = (1 - progress(ms, [T.stopped, T.stopped + 300])).toFixed(3);
-    pens.forEach((pen) => (pen.style.opacity = (1 - L).toFixed(3)));
+    // The circles fade as the recording ends (the pictures in the report keep them).
+    pens.forEach((pen) => (pen.style.opacity = (1 - progress(ms, [T.stop, T.stop + 350])).toFixed(3)));
   }
 
   function render(at) {
