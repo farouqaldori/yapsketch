@@ -1799,8 +1799,8 @@ footer .x svg {
 }
 .play[data-state="paused"] .i-pause,
 .play[data-state="playing"] .i-play,
-.sound[data-state="off"] .i-on,
-.sound:not([data-state="off"]) .i-off {
+.sound[data-state="on"] .i-off,
+.sound:not([data-state="on"]) .i-on {
   display: none;
 }
 .time {
@@ -1860,15 +1860,6 @@ footer .x svg {
   background: var(--ink);
   box-shadow: 0 1px 4px #1a120c40;
 }
-.hint {
-  flex: none;
-  display: none;
-  font: 12px var(--mono);
-  color: var(--soft);
-}
-.controls[data-sound="locked"] .hint {
-  display: block;
-}
 @media (prefers-reduced-motion: reduce) {
   .controls {
     display: none;
@@ -1880,9 +1871,6 @@ footer .x svg {
     margin-top: 96px;
     gap: 8px;
     padding: 0 16px;
-  }
-  .hint {
-    display: none !important;
   }
   .demo {
     margin-bottom: 40px;

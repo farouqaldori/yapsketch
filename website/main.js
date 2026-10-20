@@ -362,7 +362,7 @@
     // A tap, a click or a key press unlocks it.
     api.unlock = () => {
       load();
-      if (ctx.state !== "running") ctx.resume().catch(() => {});
+      if (ctx && ctx.state !== "running") ctx.resume().catch(() => {});
     };
     api.setVolume = (v) => {
       volume = Math.min(1, Math.max(0, v));
@@ -375,6 +375,10 @@
       else api.onchange();
     };
     api.toggle = () => {
+      if (!muted && !api.running) {
+        api.unlock(); // waiting on the browser, not muted: this click is what lets it start
+        return;
+      }
       muted = !muted;
       if (!muted && volume === 0) {
         volume = 0.6; // unmuting at zero would stay silent
@@ -430,9 +434,8 @@
         volumeInput.value = sound.muted ? 0 : sound.volume;
         volumeInput.style.setProperty("--p", volumeInput.value);
         soundButton.dataset.state = state;
-        soundButton.setAttribute("aria-label", sound.muted ? "Turn sound on" : "Turn sound off");
-        soundButton.setAttribute("aria-pressed", String(!sound.muted));
-        bar.dataset.sound = state;
+        soundButton.setAttribute("aria-label", state === "on" ? "Turn sound off" : "Turn sound on");
+        soundButton.setAttribute("aria-pressed", String(state === "on"));
       },
     };
     playButton.addEventListener("click", () => {
