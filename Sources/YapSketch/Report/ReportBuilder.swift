@@ -96,10 +96,14 @@ struct ReportBuilder {
         var out: [Int: [String]] = [:]
         for (k, evs) in grouped {
             var notes = evs.filter { ![.click, .appSwitch, .window, .clear, .erase].contains($0.kind) }.compactMap { e -> String? in
-                guard let said = note(e) else { return nil }
-                guard [.annotation, .textNote, .gesture].contains(e.kind) else { return said }
-                if owner(e) == nil { return said + " (no point is about it)" }
-                return shots[k]!.picture.marks.contains { $0.t == e.t } ? said : said + " (not in the picture)"
+                let isMark = [.annotation, .textNote, .gesture].contains(e.kind)
+                // A mark says something only when it's on a thing with a name (or is text); otherwise only a
+                // problem with it is worth a line.
+                let said = note(e)
+                guard isMark else { return said }
+                if owner(e) == nil { return (said ?? "✏️ a mark") + " (no point is about it)" }
+                if !shots[k]!.picture.marks.contains(where: { $0.t == e.t }) { return (said ?? "✏️ a mark") + " (not in the picture)" }
+                return said
             }
             var pages: [String] = []
             for e in evs where (e.kind == .appSwitch || e.kind == .window) && e.t >= 0.5 {
@@ -127,16 +131,17 @@ struct ReportBuilder {
     private func note(_ e: SessionEvent) -> String? {
         switch e.kind {
         case .annotation:
-            let shape = ["arrow": "arrow", "rect": "box", "highlight": "highlight"][e.tool ?? ""] ?? "mark"
-            let on = e.element.map { " on \($0)" } ?? ""
-            return "✏️ drew a \(e.color ?? "") \(shape)\(on)"
+            // "drew a red mark" is in the picture; what it's on is the part worth saying.
+            guard let element = e.element, !element.hasPrefix("unknown") else { return nil }
+            return "✏️ on \(element)"
         case .textNote:
             return "✏️ wrote \"\(e.text ?? "")\""
         case .click:
             let on = e.element.map { " \($0)" } ?? ""
             return "🖱 clicked\(on)"
         case .keys:
-            return "⌨️ typed `\(e.text ?? "")`"
+            guard let text = e.text, !text.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
+            return "⌨️ typed `\(text)`"
         case .shortcut:
             return "⌨️ pressed `\(e.text ?? "")`"
         case .appSwitch, .window:
@@ -146,7 +151,7 @@ struct ReportBuilder {
         case .console:
             return "⚠️ \(e.text ?? "console error")"
         case .gesture:
-            return "🖱 circled something with the pointer"
+            return nil
         case .sessionStart, .sessionEnd, .erase, .scroll:
             return nil
         }

@@ -18,8 +18,6 @@ struct RecordingSummary: Identifiable, Hashable {
 
     struct Point: Hashable {
         let n: Int
-        /// What I did: "✏️ drew a red box", "🖱 circled something with the pointer".
-        let did: String
         let picture: URL?
     }
 
@@ -83,7 +81,7 @@ struct RecordingSummary: Identifiable, Hashable {
             if !words.isEmpty { pieces.append((words, nil)) }
         }
 
-        // Each "**[n]** time · notes" block and its picture, "![n](shots/n.jpg)".
+        // Each "**[n]** time" block and its picture, "![n](shots/n.jpg)".
         var points: [Point] = []
         var i = 0
         while i < lines.count {
@@ -94,7 +92,6 @@ struct RecordingSummary: Identifiable, Hashable {
                 i += 1
                 continue
             }
-            let did = line.components(separatedBy: " · ").dropFirst().joined(separator: " · ")
             var picture: URL?
             i += 1
             while i < lines.count, !lines[i].hasPrefix("**["), lines[i] != "---" {
@@ -104,7 +101,7 @@ struct RecordingSummary: Identifiable, Hashable {
                 }
                 i += 1
             }
-            points.append(Point(n: n, did: did, picture: picture))
+            points.append(Point(n: n, picture: picture))
         }
 
         let date = Storage.date(of: dir) ?? ((try? dir.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date())

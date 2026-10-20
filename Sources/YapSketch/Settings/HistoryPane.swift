@@ -401,7 +401,7 @@ private struct RecordingDetail: View {
                 if !item.narration.isEmpty {
                     narration.font(.ui(15)).foregroundStyle(.ink).lineSpacing(6).textSelection(.enabled)
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 14)], spacing: 16) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 220), spacing: 14, alignment: .top)], spacing: 16) {
                     ForEach(item.points, id: \.n) { p in
                         PointCard(point: p) { Self.open(item, at: item.points.filter { $0.picture != nil }.firstIndex(of: p) ?? 0) }
                     }
@@ -448,7 +448,7 @@ private struct PointCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // A fixed 16:10 frame, so every card is the same shape.
+            // A fixed 16:10 frame, so every card is the same shape and the grid lines up.
             Color.panel
                 .aspectRatio(16 / 10, contentMode: .fit)
                 .overlay {
@@ -463,7 +463,6 @@ private struct PointCard: View {
                 .contentShape(Rectangle())
                 .onTapGesture { if point.picture != nil { expand() } }
                 .help(point.picture != nil ? "Expand" : "")
-            if !point.did.isEmpty { Text(point.did).font(.ui(12.5)).foregroundStyle(.soft).lineLimit(2) }
         }
     }
 }
