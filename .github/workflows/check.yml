@@ -3,7 +3,10 @@ name: Check
 on:
   push:
     branches: [main]
+    # The website deploys on its own (Cloudflare): changing it doesn't need an app build.
+    paths-ignore: ["website/**"]
   pull_request:
+    paths-ignore: ["website/**"]
 
 concurrency:
   group: check-${{ github.ref }}
