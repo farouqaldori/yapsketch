@@ -43,11 +43,7 @@ struct ReportBuilder {
                 let pic = shot.picture
                 md.append((["**[\(shot.n)]** \(Fmt.clock(pic.t))"] + (notes[k] ?? [])).joined(separator: " · "))
                 md.append("")
-                if let first = pic.frames.first, let last = pic.frames.last {
-                    let marks = pic.marks.contains { $0.kind != .gesture } ? ", what I drew kept on each" : ""
-                    md.append("Frames from \(Fmt.clock(first)) to \(Fmt.clock(last)), left to right, where the screen changed most\(marks):")
-                    md.append("")
-                } else if !pic.marks.isEmpty {
+                if !pic.marks.isEmpty {
                     let lit = pic.marks.contains { $0.kind == .gesture } ? " (where the pointer circled is lit, the rest dimmed)" : ""
                     md.append("\(pic.shows) at \(Fmt.clock(pic.t)), numbered \(shot.n)\(lit):")
                     md.append("")
@@ -59,7 +55,7 @@ struct ReportBuilder {
 
         md.append("---")
         md.append(
-            "_Each [n] marks where I was in my narration. Its picture is my screen at that moment, with what I drew or circled for it and its number n next to that (in the corner when there's none). For something moving, frames go left to right. To look closer at any [n] or moment: `yapsketch frames \(CLI.id(session.dir)) <n|mm:ss>`. Transcript: \(transcriptSource)\(segmentedBy.map { ", points by \($0)" } ?? ""). Full video: `recording.mp4`. Raw data: `events.jsonl`, `transcript.json`._"
+            "_Each [n] marks where I was in my narration. Its picture is my screen at that moment, with what I drew or circled for it and its number n next to that (in the corner when there's none). To look closer at any [n] or moment: `yapsketch frames \(CLI.id(session.dir)) <n|mm:ss>`. Transcript: \(transcriptSource)\(segmentedBy.map { ", points by \($0)" } ?? ""). Full video: `recording.mp4`. Raw data: `events.jsonl`, `transcript.json`._"
         )
         md.append("")
         return md.joined(separator: "\n")

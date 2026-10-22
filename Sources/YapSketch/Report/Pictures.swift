@@ -6,7 +6,7 @@ import UniformTypeIdentifiers
 extension PostProcessor {
     /// One picture per point, at the display's point size so event coordinates map 1:1 onto
     /// pixels. A point with marks shows the screen most of them are on, with faded ink put back.
-    /// One without marks shows Jev's pick of moment. One about motion gets a strip of frames.
+    /// One without marks shows Jev's pick of moment.
     func pictures(
         asset: AVURLAsset, points: [SegmentAnalysis], events: [SessionEvent], duration: Double,
         words: [TranscriptSegment], frames: FrameLog?, previous: [SegmentAnalysis]
@@ -85,64 +85,6 @@ extension PostProcessor {
             }
             if !lit.isEmpty, let shaded = PointerGestures.drawSpotlight(lit, on: image, display: display) { image = shaded }
             return Still(t: t, marks: group, image: image)
-        }
-
-        /// Frames from the stretch around the point where the screen changed most, its drawn
-        /// marks put back where they don't show and its number in the corner; nil if nothing on
-        /// screen changed.
-        func motionStrip(_ p: SegmentAnalysis, k: Int, n: Int, until t: Double, marks: [SessionEvent], path: String) async -> Picture? {
-            let ink = marks.filter { $0.kind != .gesture }
-            let begun: [Double] = [p.start] + ink.map { $0.t0 ?? $0.t }
-            let ended: [Double] = [t] + ink.map(\.t)
-            let from = max(0, begun.min()! - 2)
-            let to = min(max(0, duration - 0.05), ended.max()! + 0.5)
-            // The user's own ink appearing or fading isn't the change they mean; nor, unless
-            // nothing else changed, the page scrolling under their hand.
-            var busy: [ClosedRange<Double>] = []
-            var scrolls: [ClosedRange<Double>] = []
-            for e in events {
-                switch e.kind {
-                case .annotation, .textNote: busy.append(((e.t0 ?? e.t) - 0.1)...(e.t + 0.3))
-                case .erase: busy.append((e.t - 0.7)...(e.t + 0.1))
-                case .clear: busy.append((e.t - 0.1)...(e.t + 0.3))
-                case .scroll: scrolls.append((e.t - 0.1)...(e.t + 0.5))
-                default: break
-                }
-            }
-            let times = Array(stride(from: from, through: to, by: 0.125))
-            let samples = times.compactMap { t in frames?.at(t).map { (t: t, g: $0) } }
-            // Around what the user drew or circled, if anything changed there; else anywhere.
-            let focus = marks.compactMap(area).reduce(nil as CGRect?) { $0?.union($1) ?? $1 }
-            let near = focus?.insetBy(dx: -60, dy: -60)
-            let regions = near == nil ? [nil] : [near, nil]
-            var stretch: Filmstrip.Stretch?
-            for region in regions {
-                for skip in [busy + scrolls, busy] where stretch == nil {
-                    stretch = Filmstrip.busiest(samples, display: display, pointer: { session.pointer(at: $0) }, skipping: skip, near: region)
-                }
-            }
-            guard let stretch else { return nil }
-            // Nothing drawn: the click that set it moving (a sidebar's toggle) says where to look.
-            let click = events.last {
-                $0.kind == .click && $0.t <= stretch.times[0] + 0.15 && $0.t >= stretch.times[0] - 1
-            }.flatMap { e in e.x.flatMap { x in e.y.map { CGRect(x: x - 20, y: $0 - 20, width: 40, height: 40) } } }
-            let look = focus ?? click
-            let crop = Filmstrip.crop(stretch.area.union(look ?? stretch.area), display: display, focus: look.map { CGPoint(x: $0.midX, y: $0.midY) })
-            var tiles: [(t: Double, image: CGImage)] = []
-            for ft in stretch.times {
-                guard let shot = await frame(ft) else { continue }
-                let image = await restoring(ink, at: ft, onto: shot)
-                let s = Double(image.width) / display.width
-                if let c = image.cropping(to: CGRect(x: crop.minX * s, y: crop.minY * s, width: crop.width * s, height: crop.height * s).integral) {
-                    tiles.append((ft, c))
-                }
-            }
-            guard tiles.count >= 4, let sheet = Filmstrip.sheet(tiles, columns: tiles.count, maxWidth: 2400),
-                let strip = Badges.stamp(n, at: [Badges.corner], on: sheet, display: CGSize(width: sheet.width, height: sheet.height)),
-                write(strip, path)
-            else { return nil }
-            Log.info("point \(k): motion, \(tiles.count) frames \(Fmt.clock(tiles[0].t))–\(Fmt.clock(tiles[tiles.count - 1].t))")
-            return Picture(path: path, t: tiles[tiles.count / 2].t, marks: marks, frames: tiles.map(\.t))
         }
 
         // Each point runs until a little after its last word (or the next point's first).
@@ -249,17 +191,12 @@ extension PostProcessor {
             guard let still = stills[k] else { continue }
             n += 1
             let path = "shots/\(n).jpg"
-            var pic: Picture?
-            if (points[k].motion ?? 0) > 0.5 { pic = await motionStrip(points[k], k: k, n: n, until: ends[k], marks: still.marks, path: path) }
-            if pic == nil {
-                let spots = still.marks.isEmpty ? [Badges.corner] : Badges.spots(still.marks.compactMap(area), display: display)
-                guard let image = Badges.stamp(n, at: spots, on: still.image, display: display), write(image, path) else {
-                    n -= 1
-                    continue
-                }
-                pic = Picture(path: path, t: still.t, marks: still.marks)
+            let spots = still.marks.isEmpty ? [Badges.corner] : Badges.spots(still.marks.compactMap(area), display: display)
+            guard let image = Badges.stamp(n, at: spots, on: still.image, display: display), write(image, path) else {
+                n -= 1
+                continue
             }
-            out[k] = Screenshot(n: n, t: ends[k], picture: pic!)
+            out[k] = Screenshot(n: n, t: ends[k], picture: Picture(path: path, t: still.t, marks: still.marks))
         }
         for f in (try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? [] where f.hasPrefix(".") {
             try? FileManager.default.removeItem(at: dir.appendingPathComponent(f))

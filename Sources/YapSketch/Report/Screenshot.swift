@@ -13,8 +13,6 @@ struct Picture {
     let t: Double
     /// The user's drawings and pointer circles it shows.
     var marks: [SessionEvent] = []
-    /// A strip's frames, left to right: when each was.
-    var frames: [Double] = []
 
     /// "A drawing", "2 drawings and a pointer circle".
     var shows: String {

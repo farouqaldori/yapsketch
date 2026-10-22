@@ -10,7 +10,6 @@ struct SegmentAnalysis: Codable {
     var needsScreenshot: Double?
     /// The drawn marks and pointer circles it's about (when each ended, their `t`).
     var marks: [Double]?
-    var motion: Double?
     /// Its marker in the report ([n], and shots/<n>.jpg), when it has a picture.
     var n: Int?
 }
@@ -56,7 +55,7 @@ struct SessionAnalysis: Codable {
 }
 
 /// Groups transcript phrases into points, then asks Jev which point each mark is for and
-/// which points need a picture or are about something moving.
+/// which points need a picture.
 struct PointFinder {
     let words: [TranscriptSegment]
     let screen: String
@@ -221,25 +220,10 @@ struct PointFinder {
                         ],
                     ] as [String: Any]
             }
-            if p.motion == nil {
-                questions["motion_\(k)"] =
-                    [
-                        "type": "noul",
-                        "instructions": parts.merging([
-                            "question":
-                                "A user is narrating a screen recording for a developer. Is `this_part` itself (not `previous` or `next`) about something on screen moving or changing over time, which one still picture can't show?"
-                        ]) { a, _ in a },
-                        "criteria": [
-                            "true": "It's about how something moves or changes: an animation, a transition, something jumping, flickering, shrinking or growing, a layout shift, loading.",
-                            "false": "It's about how something looks, or what should be different, at one moment.",
-                        ],
-                    ] as [String: Any]
-            }
         }
         if !questions.isEmpty, let r = await send(state: ["screen": screen, "narration": points.map(\.text)], questions: questions, key: key) {
             for k in points.indices {
                 if let v = r.answers["visual_\(k)"]?["noul"] as? NSNumber { points[k].needsScreenshot = v.doubleValue }
-                if let v = r.answers["motion_\(k)"]?["noul"] as? NSNumber { points[k].motion = v.doubleValue }
             }
             result.questions += questions.count
             result.inputTokens += r.inputTokens
@@ -247,7 +231,6 @@ struct PointFinder {
         // Kept with the points they were asked about, before marks divide any.
         for k in points.indices {
             result.segments[k].needsScreenshot = points[k].needsScreenshot
-            result.segments[k].motion = points[k].motion
         }
         if let j = await judged {
             result.marks = known + j.marks
@@ -404,13 +387,12 @@ struct PointFinder {
         }
         var answers: [[String]: SegmentAnalysis] = [:]
         for list in saved.reversed() {
-            for k in list.indices where list[k].needsScreenshot != nil || list[k].motion != nil { answers[reads(list, k)] = list[k] }
+            for k in list.indices where list[k].needsScreenshot != nil { answers[reads(list, k)] = list[k] }
         }
         return segments.indices.map { k in
             var p = SegmentAnalysis(index: k, start: segments[k].start, end: segments[k].end, text: segments[k].text)
             let old = answers[reads(segments, k)]
             p.needsScreenshot = old?.needsScreenshot ?? segments[k].needsScreenshot
-            p.motion = old?.motion ?? segments[k].motion
             return p
         }
     }
@@ -464,7 +446,6 @@ struct PointFinder {
         func add(_ p: SegmentAnalysis, _ start: Double, _ end: Double, _ text: String, _ marks: [SessionEvent]) {
             var q = SegmentAnalysis(index: out.count, start: start, end: end, text: text)
             q.needsScreenshot = p.needsScreenshot
-            q.motion = p.motion
             q.marks = marks.isEmpty ? nil : marks.map(\.t)
             out.append(q)
         }
