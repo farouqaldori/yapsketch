@@ -95,6 +95,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         wireInput()
         wirePlayer()
+        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { _ in
+            MainActor.assumeIsolated { PanelMotion.rejoinAllSpaces() }
+        }
         // Hold ⌃⌥ to draw; let go to click normally again.
         NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] e in self?.modifiersChanged(e.modifierFlags) }
         NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] e in
@@ -412,10 +415,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         console.start(preferring: tracker.current?.url)
 
+        var ticks = 0
         let t = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self, let s = self.session else { return }
             self.player.update(recording: true, elapsed: s.now())
             self.refreshStatus()
+            // In case a Space change went by unannounced: the toolbar must stay in sight.
+            ticks += 1
+            if ticks % 10 == 0 { MainActor.assumeIsolated { PanelMotion.rejoinAllSpaces() } }
         }
         RunLoop.main.add(t, forMode: .common)
         clockTimer = t

@@ -65,6 +65,21 @@ enum PanelMotion {
         }
     }
 
+    /// Brings back shown panels stranded on one Space. The window server once forgot that
+    /// YapSketch's panels join every Space, leaving a recording's toolbar on a desktop no one
+    /// was looking at for hours. Setting the collection behavior again restores it; ordering
+    /// the panel in again doesn't.
+    static func rejoinAllSpaces() {
+        for window in NSApp.windows
+        where window.isVisible && window.collectionBehavior.contains(.canJoinAllSpaces) && !window.isOnActiveSpace {
+            let behavior = window.collectionBehavior
+            window.collectionBehavior = []
+            window.collectionBehavior = behavior
+            window.orderFrontRegardless()
+            Log.info("panel was stuck on another Space, brought back: \(type(of: window)) \(window.frame.size)")
+        }
+    }
+
     /// A small spring: `view` grows in from `from` of its size, about its centre.
     static func pop(_ view: NSView, from: CGFloat = 0.3) {
         guard let layer = view.layer else { return }
