@@ -108,19 +108,6 @@ final class Account: ObservableObject, Identifiable {
         }
     }
 
-    /// A working key on an empty account is saved too, marked out of funds.
-    func save(key: String) async -> KeyCheck {
-        guard case .apiKey(_, let check) = provider.connect else { return .rejected }
-        let key = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return .rejected }
-        let result = await check(key)
-        if result == .works || result == .outOfFunds {
-            Credentials.save(SignedIn(key: key), for: id)
-            if result == .outOfFunds { Credentials.note(status: 402, for: id) }
-        }
-        return result
-    }
-
     func cancel() {
         task?.cancel()
         task = nil
@@ -180,19 +167,6 @@ enum ProviderLogo {
         #else
         return nil
         #endif
-    }
-
-    static func menuIcon(_ id: String) -> NSImage {
-        NSImage(size: NSSize(width: 16, height: 16), flipped: false) { rect in
-            NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4).addClip()
-            if let image = image(id) {
-                image.draw(in: rect)
-            } else {
-                NSColor.secondaryLabelColor.setFill()
-                rect.fill()
-            }
-            return true
-        }
     }
 }
 

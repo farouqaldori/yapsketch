@@ -28,7 +28,6 @@ struct SessionEvent: Codable {
     var app: String?
     var window: String?
     var url: String?
-    var element: String?
     var tool: String?
     var color: String?
     var bbox: [Double]?

@@ -33,7 +33,7 @@
       href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,400,100&family=Geist:wght@400;500&family=Geist+Mono&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="style.css?v=55" />
+    <link rel="stylesheet" href="style.css?v=57" />
     <script src="main.js?v=32" defer></script>
   </head>
   <body>
@@ -62,9 +62,9 @@
           <svg class="screen" viewBox="0 0 800 450" role="img" aria-labelledby="scene-title scene-desc">
             <title id="scene-title">Talk, draw, and point at your screen</title>
             <desc id="scene-desc">
-              While talking, the pen circles a badge that overlaps a number (marker 1), a broken image
-              (marker 2) and a tooltip the chart cuts off (marker 3). YapSketch turns the words into a
-              report with a picture for each marker.
+              While talking, the pen circles a badge that overlaps a number, a broken image and a tooltip
+              the chart cuts off. YapSketch turns it into a timeline of what was said and drawn, each
+              line at its time, with a picture for each drawing.
             </desc>
 <defs>
                           <clipPath id="screen-clip"><rect width="800" height="450" rx="24" /></clipPath>
@@ -218,12 +218,17 @@
             <div class="output">
               <div class="report-bar"><i></i><i></i><i></i><span>Screen recording · 0:16</span></div>
               <div class="report-body">
-                <p>
-                  Okay so I want you to fix a few issues here on my website. This badge overlaps the number <span class="reference">[1]</span>
-                  the image here is broken <span class="reference">[2]</span> and the tooltip on the graph gets cut off
-                  <span class="reference">[3]</span> Fix it all please, and yeah, make no mistakes.
-                </p>
-                <div class="pics" aria-label="A picture for each point">
+                <div class="timeline">
+                  <p><time>00:00.4</time>Okay so I want you to fix a few issues here on my website.</p>
+                  <p><time>00:04.6</time>This badge overlaps the number</p>
+                  <p class="did"><time>00:05.2</time>[drew → 1.jpg]</p>
+                  <p><time>00:06.8</time>the image here is broken</p>
+                  <p class="did"><time>00:07.3</time>[drew → 2.jpg]</p>
+                  <p><time>00:09.0</time>and the tooltip on the graph gets cut off</p>
+                  <p class="did"><time>00:10.8</time>[drew → 3.jpg]</p>
+                  <p><time>00:12.0</time>Fix it all please, and yeah, make no mistakes.</p>
+                </div>
+                <div class="pics" aria-label="A picture for each drawing">
                   <span class="pic"><img src="report-1.webp" alt="" width="240" height="139" /><b>1</b></span>
                   <span class="pic"><img src="report-2.webp" alt="" width="240" height="139" /><b>2</b></span>
                   <span class="pic"><img src="report-3.webp" alt="" width="240" height="139" /><b>3</b></span>
@@ -291,9 +296,11 @@
           <li>
             <div class="sketch">
               <svg viewBox="0 0 160 80" aria-hidden="true">
-                <text x="6" y="34" fill="#23263a" font-size="10">“make this</text>
-                <text x="6" y="48" fill="#23263a" font-size="10">button bigger”</text>
-                <path class="link" d="M70 44C84 44 88 40 100 40" />
+                <text x="4" y="31" fill="#a39a8e" font-size="7.5" font-family="Geist Mono, monospace">00:03</text>
+                <text x="30" y="31" fill="#23263a" font-size="9.5">“make this</text>
+                <text x="30" y="43" fill="#23263a" font-size="9.5">button bigger”</text>
+                <text x="4" y="57" fill="#a39a8e" font-size="7.5" font-family="Geist Mono, monospace">00:04</text>
+                <text x="30" y="57" fill="#ff5240" font-size="7.5" font-family="Geist Mono, monospace">[drew → 1.jpg]</text>
                 <rect x="100" y="16" width="52" height="48" rx="7" fill="#fff" stroke="#e7dccb" />
                 <rect x="108" y="40" width="30" height="11" rx="5.5" fill="#23263a" />
                 <path class="ink" d="M104 40C112 30 142 32 144 44C145 55 124 58 112 55C102 52 100 45 108 40" />
@@ -302,7 +309,7 @@
             </div>
             <span class="step">3</span>
             <h3>It builds the report</h3>
-            <p>Your speech becomes text, and Jev links each thing you said to the part of the screen you drew on.</p>
+            <p>Your words and what you did, in order and each at its time, with a picture wherever you drew.</p>
             <svg class="hop" viewBox="0 0 30 16" aria-hidden="true"><path d="M3 8H26M19.5 2l6.5 6-6.5 6" /></svg><svg class="hop-down" viewBox="0 0 24 40" aria-hidden="true"><path d="M12 3C7 12 17 22 12 35M6 29l6 7 6-7" /></svg>
           </li>
           <li>
@@ -311,10 +318,10 @@
             </div>
             <span class="step">4</span>
             <h3>Paste into your agent</h3>
-            <p>Your words, with [1], [2] and a picture for each, are on your clipboard.</p>
+            <p>It’s all on your clipboard. Your agent works out what you meant.</p>
           </li>
         </ol>
-        <p class="privacy">Recordings stay on your Mac, unless you turn on Jev or a cloud speech model.</p>
+        <p class="privacy">Recordings stay on your Mac, unless you turn on a cloud speech model.</p>
       </section>
 
       <!-- The CLI: the paste is the short version, agents can ask for the rest -->
@@ -322,31 +329,28 @@
         <div class="cli-copy">
           <h2 id="cli-title">Your agent can dig deeper.</h2>
           <p class="cli-lede">
-            With the <code>yapsketch</code> CLI, your agent can look closer: the exact frames around any moment you
-            marked, plus what you said and the full video.
+            With the <code>yapsketch</code> CLI, your agent can look closer: your screen at any moment, or a
+            stretch of it frame by frame, plus every word and the full video.
           </p>
         </div>
         <div class="terminal" aria-label="A terminal running yapsketch show and yapsketch frames">
           <div class="term-body">
             <p class="cmd"><span class="ps">~/users/farouqaldori</span> <span class="prompt">❯</span> <span class="typed">yapsketch show k2vg</span></p>
-            <p class="out dim">Recording k2vg · ~/Movies/YapSketch/…15-07-41</p>
+            <p class="out dim">Recording k2vg (folder: ~/Movies/YapSketch/…15-07-41)</p>
             <p class="out gap"></p>
-            <p class="out h">Screen recording · 20 Oct 2026 · 00:16</p>
-            <p class="out dim">Google Chrome (https://vesper.studio/)</p>
+            <p class="out h"># Screen recording · 20 Oct 2026 · 00:16</p>
             <p class="out gap"></p>
-            <p class="out wrap">Okay so I want you to fix a few issues here on my website. This badge overlaps the number <em>[1]</em> the image here is broken <em>[2]</em> and the tooltip on the graph gets cut off <em>[3]</em> Fix it all please, and yeah, make no mistakes.</p>
-            <p class="out gap"></p>
-            <p class="out"><em>[1]</em> <span class="dim">00:06.6 · drew a red mark</span></p>
+            <p class="out"><span class="dim">00:00.4</span>  Okay so I want you to fix a few issues here on my website.</p>
+            <p class="out"><span class="dim">00:04.6</span>  This badge overlaps the number</p>
+            <p class="out"><span class="dim">00:05.2</span>  <em>[drew → 1.jpg]</em></p>
             <p class="out file">~/Movies/YapSketch/…15-07-41/shots/1.jpg</p>
-            <p class="out"><em>[2]</em> <span class="dim">00:08.6 · drew a red mark</span></p>
+            <p class="out"><span class="dim">00:06.8</span>  the image here is broken</p>
+            <p class="out"><span class="dim">00:07.3</span>  <em>[drew → 2.jpg]</em></p>
             <p class="out file">~/Movies/YapSketch/…15-07-41/shots/2.jpg</p>
-            <p class="out"><em>[3]</em> <span class="dim">00:12.2 · drew a red mark</span></p>
-            <p class="out file">~/Movies/YapSketch/…15-07-41/shots/3.jpg</p>
+            <p class="out dim">…</p>
             <p class="out gap"></p>
-            <p class="out dim">Full video: recording.mp4 · Raw data: events.jsonl</p>
-            <p class="out gap"></p>
-            <p class="cmd"><span class="ps">~/users/farouqaldori</span> <span class="prompt">❯</span> <span class="typed">yapsketch frames k2vg 3</span></p>
-            <p class="out file">~/Movies/YapSketch/…15-07-41/frames/point-3.jpg</p>
+            <p class="cmd"><span class="ps">~/users/farouqaldori</span> <span class="prompt">❯</span> <span class="typed">yapsketch frames k2vg 00:09-00:11</span></p>
+            <p class="out">6 frames from 00:09.0 to 00:11.0, one every 0.4 s: <span class="file">~/Movies/YapSketch/…15-07-41/frames/00m09.0s-00m11.0s.jpg</span></p>
             <p class="out gap"></p>
             <p class="later"><span class="ps">~/users/farouqaldori</span> <span class="prompt">❯</span> <span class="caret"></span></p>
           </div>

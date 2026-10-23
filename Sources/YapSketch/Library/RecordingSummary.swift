@@ -1,6 +1,7 @@
 import Foundation
 
-/// A recording as History shows it, read from its REPORT.md.
+/// A recording as History shows it, read from its report.json (or, made before there was one,
+/// its REPORT.md).
 struct RecordingSummary: Identifiable, Hashable {
     let id: String  // the folder name
     let folder: URL
@@ -8,7 +9,7 @@ struct RecordingSummary: Identifiable, Hashable {
     /// Where it was recorded: the page or the app.
     let title: String
     let length: String
-    /// The narration in pieces: text, then the marker it leads up to (nil for the last piece).
+    /// The narration in pieces: text, then the picture it leads up to (nil for the last piece).
     let narration: [(text: String, marker: Int?)]
     let points: [Point]
     /// Why its report couldn't be made (the recording is kept, to try again).
@@ -58,11 +59,25 @@ struct RecordingSummary: Identifiable, Hashable {
         let place = ((try? String(contentsOf: dir.appendingPathComponent("events.jsonl"), encoding: .utf8)) ?? "")
             .split(separator: "\n").lazy
             .compactMap { try? JSONDecoder().decode(SessionEvent.self, from: Data($0.utf8)) }
-            .first { $0.kind == .appSwitch || $0.kind == .window }
+            .first(where: Timeline.isPlace)
         var title = place?.app ?? "Screen recording"
         if let url = place?.url.flatMap(URL.init(string:)), let host = url.host {
             title = host + (url.path.count > 1 ? url.path : "")
         }
+        let date = Storage.date(of: dir) ?? ((try? dir.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date())
+        if let data = try? Data(contentsOf: dir.appendingPathComponent("report.json")),
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        {
+            let pieces = (json["narration"] as? [[String: Any]] ?? []).map { ($0["text"] as? String ?? "", $0["marker"] as? Int) }
+            let points = (json["pictures"] as? [[String: Any]] ?? []).compactMap { p -> Point? in
+                guard let n = p["n"] as? Int else { return nil }
+                return Point(n: n, picture: (p["path"] as? String).map { dir.appendingPathComponent($0) })
+            }
+            return RecordingSummary(
+                id: dir.lastPathComponent, folder: dir, date: date, title: title, length: json["length"] as? String ?? length,
+                narration: pieces, points: points)
+        }
+
         let narrationLine = lines.first { $0.contains("[1]") && !$0.hasPrefix("**") } ?? ""
         var pieces: [(String, Int?)] = []
         var rest = Substring(narrationLine)
@@ -104,7 +119,6 @@ struct RecordingSummary: Identifiable, Hashable {
             points.append(Point(n: n, picture: picture))
         }
 
-        let date = Storage.date(of: dir) ?? ((try? dir.resourceValues(forKeys: [.creationDateKey]).creationDate) ?? Date())
         return RecordingSummary(
             id: dir.lastPathComponent, folder: dir, date: date, title: title, length: length,
             narration: pieces, points: points)

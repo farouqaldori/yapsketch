@@ -1,7 +1,5 @@
 import AVFoundation
 import Foundation
-import ImageIO
-import UniformTypeIdentifiers
 
 /// `yapsketch <command>`: the recordings for coding agents (and people) on the command line.
 /// The app's own executable answers these; `yapsketch` on the PATH is a small wrapper the
@@ -10,23 +8,26 @@ enum CLI {
     static let commands: Set<String> = ["latest", "list", "show", "brief", "path", "frames", "reprocess", "help", "--help", "-h"]
 
     static let usage = """
-        yapsketch: YapSketch screen recordings (what the user said while showing their screen,
-        with a numbered picture for each [n] marker in the narration).
+        yapsketch: YapSketch screen recordings: what the user said and did while showing their
+        screen, each at its time, with a picture wherever they drew or circled with the pointer.
 
           yapsketch latest            the newest recording's report
           yapsketch show <recording>  a recording's report (its id from `list`, or a path)
-          yapsketch brief [recording] the short instructions (what's copied when a recording ends)
+          yapsketch brief [recording] what's copied when a recording ends (the report, shorter)
           yapsketch list [-n N]       recent recordings: when, how long, how they start
           yapsketch path [recording]  a recording's folder (the newest by default)
-          yapsketch frames <recording> <n|mm:ss> [--count N]
-                                     frames around marker [n] or a moment, side by side in
-                                     one picture (8 by default), to look closer, and prints its path
-          yapsketch reprocess <recording> [--jev]
-                                     build a report again (--jev: ask Jev what changed)
+          yapsketch frames <recording> <mm:ss>
+                                     the screen at that moment, full size, and prints its path
+          yapsketch frames <recording> <mm:ss>-<mm:ss> [--every <seconds>]
+                                     frames across a stretch (6 by default, 12 at most), two to
+                                     a row with their times, in one picture, and prints its path
+          yapsketch reprocess <recording>
+                                     build a report again
 
-        Reports are Markdown. Image paths are absolute: open each image to see what the user
-        showed. Marker n's picture has a coral badge n next to what they drew or circled for it,
-        or in its corner, and the spot the pointer circled is lit.
+        Reports are Markdown: what was said and done, each line at its time (minutes:seconds).
+        Image paths are absolute: open each image to see what the user showed. A picture's
+        number is in a coral badge next to what they drew or circled, and the spot the pointer
+        circled is lit.
         Add --json for JSON.
         """
 
@@ -54,12 +55,14 @@ enum CLI {
             guard let dir = rest.count > 1 ? find(rest[1]) : recordings().first else { fail("No such recording.") }
             print(dir.path)
         case "frames":
-            guard rest.count > 2, let dir = find(rest[1]) else { fail("Usage: yapsketch frames <recording> <n|mm:ss> [--count N]") }
-            let count = rest.firstIndex(of: "--count").flatMap { rest.indices.contains($0 + 1) ? Int(rest[$0 + 1]) : nil } ?? 8
-            frames(dir, at: rest[2], count: min(max(count, 2), 24))
+            guard rest.count > 2, let dir = find(rest[1]) else {
+                fail("Usage: yapsketch frames <recording> <mm:ss> or <mm:ss>-<mm:ss> [--every <seconds>]")
+            }
+            let every = rest.firstIndex(of: "--every").flatMap { rest.indices.contains($0 + 1) ? Double(rest[$0 + 1].trimmingCharacters(in: ["s"])) : nil }
+            frames(dir, at: rest[2], every: every)
         case "reprocess":
             guard rest.count > 1, let dir = find(rest[1]) else { fail("Which recording? See `yapsketch list`.") }
-            reprocess(dir, jev: rest.contains("--jev"))
+            reprocess(dir)
         default:
             print(usage)
         }
@@ -136,12 +139,11 @@ enum CLI {
         if rows.isEmpty { print("No recordings yet.") }
     }
 
-    private static func reprocess(_ dir: URL, jev: Bool) {
+    private static func reprocess(_ dir: URL) {
         let done = DispatchSemaphore(value: 0)
         Task.detached {
             guard let session = try? Session(existing: dir) else { fail("Couldn't open \(dir.path).") }
-            var processor = PostProcessor(session: session, refineTranscript: true) { print($0) }
-            processor.smartPictures = jev
+            let processor = PostProcessor(session: session, refineTranscript: true) { print($0) }
             let out = await processor.run()
             print(out.reportURL.path)
             done.signal()
@@ -149,62 +151,70 @@ enum CLI {
         done.wait()
     }
 
-    /// A contact sheet of `count` frames across marker [n]'s point (from a second before it to a
-    /// second after), or across the four seconds around a moment (`mm:ss`), in `frames/`.
-    private static func frames(_ dir: URL, at target: String, count: Int) {
+    /// Seconds from `01:23.4`, `1:23`, `83.4` or `1:02:03`.
+    static func seconds(_ s: String) -> Double? {
+        let parts = s.split(separator: ":", omittingEmptySubsequences: false).map { Double($0) }
+        guard (1...3).contains(parts.count), parts.allSatisfy({ ($0 ?? -1) >= 0 }) else { return nil }
+        return parts.reduce(0.0) { $0 * 60 + $1! }
+    }
+
+    /// The screen at a moment (`mm:ss`), full size; or frames across a stretch (`mm:ss-mm:ss`),
+    /// two to a row with their times, in one picture. Saved in `frames/`.
+    private static func frames(_ dir: URL, at target: String, every: Double?) {
         let done = DispatchSemaphore(value: 0)
         Task.detached {
             guard let session = try? Session(existing: dir) else { fail("Couldn't open \(dir.path).") }
             let asset = AVURLAsset(url: session.videoURL)
             let duration = (try? await asset.load(.duration).seconds) ?? 0
-            var span: ClosedRange<Double>
-            var name: String
-            let clock = target.split(separator: ":").compactMap { Double($0) }
-            if target.contains(":"), clock.count == 2 {
-                let t = clock[0] * 60 + clock[1]
-                span = (t - 2)...(t + 2)
-                name = String(format: "%02dm%04.1fs", Int(clock[0]), clock[1])
-            } else if let n = Int(target.trimmingCharacters(in: CharacterSet(charactersIn: "[]"))), let s = Self.span(of: n, dir, session) {
-                span = s
-                name = "point-\(n)"
-            } else {
-                fail("No [\(target)] in that recording: give a marker number from its report, or a time as mm:ss.")
+            let ends = target.split(separator: "-", omittingEmptySubsequences: false).map(String.init)
+            guard (1...2).contains(ends.count), let from = seconds(ends[0]), let to = seconds(ends[ends.count - 1]) else {
+                fail("Give a time as minutes:seconds (01:23.4), or a stretch (01:20-01:30).")
             }
-            span = max(0, span.lowerBound)...max(max(0, span.lowerBound), min(span.upperBound, duration - 0.05))
-            let times = (0..<count).map { span.lowerBound + (span.upperBound - span.lowerBound) * Double($0) / Double(count - 1) }
+            guard to >= from else { fail("That stretch ends before it starts.") }
+            guard from < duration else { fail("The recording is only \(Fmt.clock(duration)) long.") }
+            let last = max(0, duration - 0.05)
             let gen = AVAssetImageGenerator(asset: asset)
             gen.appliesPreferredTrackTransform = true
-            gen.maximumSize = CGSize(width: 800, height: 800)
+            gen.maximumSize = session.display.size
             gen.requestedTimeToleranceBefore = CMTime(value: 1, timescale: 60)
             gen.requestedTimeToleranceAfter = CMTime(value: 1, timescale: 60)
+            let folder = dir.appendingPathComponent("frames", isDirectory: true)
+            try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            func name(_ t: Double) -> String { Fmt.clock(t).replacingOccurrences(of: ":", with: "m") + "s" }
+
+            if ends.count == 1 {
+                let t = min(from, last)
+                guard let image = try? await gen.image(at: CMTime(seconds: t, preferredTimescale: 600)).image else {
+                    fail("Couldn't read the video at \(Fmt.clock(t)).")
+                }
+                let out = folder.appendingPathComponent("\(name(t)).jpg")
+                guard PostProcessor.write(image, to: out) else { fail("Couldn't write \(out.path).") }
+                print("The screen at \(Fmt.clock(t)) (\(image.width)×\(image.height)): \(out.path)")
+                done.signal()
+                return
+            }
+
+            let end = min(to, last)
+            // Six across the stretch, or one every `every` seconds; twelve at most.
+            let step = max(0.1, every ?? max(0.2, (end - from) / 5))
+            let count = min(12, Int(((end - from) / step + 0.001).rounded(.down)) + 1)
+            let times = (0..<count).map { from + Double($0) * step }
             var tiles: [(t: Double, image: CGImage)] = []
             for await result in gen.images(for: times.map { CMTime(seconds: $0, preferredTimescale: 600) }) {
                 if let image = try? result.image { tiles.append((result.requestedTime.seconds, image)) }
             }
             tiles.sort { $0.t < $1.t }
-            let out = dir.appendingPathComponent("frames/\(name).jpg")
-            try? FileManager.default.createDirectory(at: out.deletingLastPathComponent(), withIntermediateDirectories: true)
-            // Two to a row (three when there are many), big enough to read once scaled down.
-            let columns = count > 12 ? 3 : 2
-            guard let sheet = Filmstrip.sheet(tiles, columns: columns, maxWidth: Double(columns) * 806 + 6),
-                let dest = CGImageDestinationCreateWithURL(out as CFURL, UTType.jpeg.identifier as CFString, 1, nil)
-            else { fail("Couldn't read frames from \(session.videoURL.path).") }
-            CGImageDestinationAddImage(dest, sheet, [kCGImageDestinationLossyCompressionQuality: 0.85] as CFDictionary)
-            guard CGImageDestinationFinalize(dest) else { fail("Couldn't write \(out.path).") }
-            print(out.path)
+            guard let sheet = Filmstrip.sheet(tiles, columns: 2, maxWidth: 2 * 1000 + 18) else {
+                fail("Couldn't read frames from \(session.videoURL.path).")
+            }
+            let out = folder.appendingPathComponent("\(name(from))-\(name(end)).jpg")
+            guard PostProcessor.write(sheet, to: out) else { fail("Couldn't write \(out.path).") }
+            let spacing = String(format: "%.1f", step)
+            let shown = "\(tiles.count) frames from \(Fmt.clock(tiles.first?.t ?? from)) to \(Fmt.clock(tiles.last?.t ?? end))"
+            print("\(shown), one every \(spacing) s, two to a row with their times: \(out.path)")
             done.signal()
         }
         done.wait()
-    }
-
-    /// When marker [n]'s point was, from the analysis, a second either side (with the marks
-    /// made for it).
-    private static func span(of n: Int, _ dir: URL, _ session: Session) -> ClosedRange<Double>? {
-        guard let p = PointFinder.load(from: dir)?.points?.first(where: { $0.n == n }) else { return nil }
-        let marks = session.events.filter { e in (p.marks ?? []).contains { abs($0 - e.t) < 0.001 } }
-        let from = ([p.start] + marks.map { $0.t0 ?? $0.t }).min()!
-        let to = ([p.end] + marks.map(\.t)).max()!
-        return (from - 1)...(to + 1)
     }
 
     private static func emit(_ value: Any) {

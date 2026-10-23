@@ -1,165 +1,86 @@
 import Foundation
 
+/// The paste (PROMPT.md), the report `yapsketch show` prints (REPORT.md) and what History reads
+/// (report.json): the timeline of what was said and done, with the pictures.
 struct ReportBuilder {
     let session: Session
     let duration: Double
     let events: [SessionEvent]
-    let points: [SegmentAnalysis]
-    let shots: [Int: Screenshot]
+    let timeline: Timeline
+    let pictures: [ReportPicture]
     let transcriptSource: String
-    /// "Jev" when the points come from Jev, nil when they're the transcript's sentences.
-    let segmentedBy: String?
 
-    /// My words with a marker after each point that has a picture.
-    private func narration() -> String {
-        points.enumerated().map { k, p in
-            [p.text, shots[k].map { "[\($0.n)]" } ?? ""].filter { !$0.isEmpty }.joined(separator: " ")
-        }.filter { !$0.isEmpty }.joined(separator: " ")
+    /// At most this many picture paths in the paste (each one is attached as an image); the
+    /// timeline names every picture either way.
+    static let pastedPictures = 10
+
+    private var id: String { CLI.id(session.dir) }
+
+    /// Where the recording started: `Google Chrome — Pull requests (github.com/acme/app/pulls)`.
+    private var place: String {
+        events.first(where: Timeline.isPlace).map(Timeline.place) ?? ""
     }
 
-    func markdown() -> String {
-        var md: [String] = []
-        let date = DateFormatter.localizedString(from: session.startedAt, dateStyle: .medium, timeStyle: .short)
-        md.append("# Screen recording · \(date) · \(Fmt.clock(duration, decimals: false))")
-        md.append("")
-        if let app = events.first(where: { $0.kind == .appSwitch || $0.kind == .window }) {
-            md.append(context(app))
-            md.append("")
-        }
-
-        if points.isEmpty {
-            md.append("_No speech was captured._")
-        } else {
-            md.append(narration())
-        }
-        md.append("")
-
-        let notes = notesByShot()
-        let ordered = shots.sorted { $0.value.n < $1.value.n }
-        if !ordered.isEmpty {
-            md.append("---")
-            md.append("")
-            for (k, shot) in ordered {
-                let pic = shot.picture
-                md.append((["**[\(shot.n)]** \(Fmt.clock(pic.t))"] + (notes[k] ?? [])).joined(separator: " · "))
-                md.append("")
-                if !pic.marks.isEmpty {
-                    let lit = pic.marks.contains { $0.kind == .gesture } ? " (where the pointer circled is lit, the rest dimmed)" : ""
-                    md.append("\(pic.shows) at \(Fmt.clock(pic.t)), numbered \(shot.n)\(lit):")
-                    md.append("")
-                }
-                md.append("![\(shot.n)](\(pic.path))")
-                md.append("")
-            }
-        }
-
-        md.append("---")
-        md.append(
-            "_Each [n] marks where I was in my narration. Its picture is my screen at that moment, with what I drew or circled for it and its number n next to that (in the corner when there's none). To look closer at any [n] or moment: `yapsketch frames \(CLI.id(session.dir)) <n|mm:ss>`. Transcript: \(transcriptSource)\(segmentedBy.map { ", points by \($0)" } ?? ""). Full video: `recording.mp4`. Raw data: `events.jsonl`, `transcript.json`._"
-        )
-        md.append("")
-        return md.joined(separator: "\n")
+    private var header: String {
+        let length = Fmt.clock(duration, decimals: false)
+        return "Screen recording\(place.isEmpty ? "" : " in \(place)"), \(length). What I said and did, with my screen wherever I drew or pointed:"
     }
 
-    /// The prompt to paste into an agent (PROMPT.md). Each picture path is on a line of its own
-    /// so agents that turn pasted paths into attached images (Claude Code) take them all.
+    private var lines: [String] { timeline.lines.isEmpty ? ["(Nothing was said or done.)"] : timeline.text() }
+
+    private var lookCloser: String {
+        "To see my screen at any moment: `yapsketch frames \(id) 01:23.4`, or a stretch: `yapsketch frames \(id) 01:20-01:30`."
+    }
+
+    /// The paste. Picture paths are on lines of their own: agents that turn pasted paths into
+    /// attached images (Claude Code) take them all.
     func brief() -> String {
-        var md: [String] = []
-        md.append(points.isEmpty ? "(No speech was captured.)" : narration())
-        let pictures = shots.values.sorted { $0.n < $1.n }.map(\.picture)
+        var md = [header, ""] + lines
         if !pictures.isEmpty {
-            md.append("")
-            md += pictures.map { "\(session.dir.path)/\($0.path)" }
+            md += ["", "Pictures, numbered like the badge on each:"]
+            md += pictures.prefix(Self.pastedPictures).map { "\(session.dir.path)/\($0.path)" }
+            if pictures.count > Self.pastedPictures {
+                md.append("(\(pictures.count - Self.pastedPictures) more in \(session.dir.path)/shots/)")
+            }
         }
+        md += ["", lookCloser]
+        return md.joined(separator: "\n") + "\n"
+    }
+
+    /// The report: the same timeline with each picture after the line it's for.
+    func markdown() -> String {
+        let date = DateFormatter.localizedString(from: session.startedAt, dateStyle: .medium, timeStyle: .short)
+        var md = ["# Screen recording · \(date) · \(Fmt.clock(duration, decimals: false))", "", header]
         md.append("")
-        md.append("For the details, run `yapsketch show \(CLI.id(session.dir))`.")
+        if timeline.lines.isEmpty { md.append("(Nothing was said or done.)") }
+        for (line, text) in zip(timeline.lines, timeline.text()) {
+            md.append(text)
+            for p in pictures where line.pictures.contains(p.n) {
+                md += ["", "![\(p.n)](\(p.path))", ""]
+            }
+        }
+        md += [
+            "", "---",
+            "_\(lookCloser) Words: \(transcriptSource), with their timings in `transcript.json`. Everything done: `events.jsonl`. Video: `recording.mp4`._",
+            "",
+        ]
         return md.joined(separator: "\n")
     }
 
-    /// What I did during each point, attached to the next screenshot taken (a mark to its own
-    /// point's): drawings and typing as they happened, and the page it started on and ended up on.
-    /// A mark no point is about, or not in its point's picture, says so.
-    private func notesByShot() -> [Int: [String]] {
-        let shotPoints = shots.keys.sorted()
-        guard let last = shotPoints.last else { return [:] }
-        func owner(_ e: SessionEvent) -> Int? { points.indices.first { k in (points[k].marks ?? []).contains { abs($0 - e.t) < 0.001 } } }
-        var grouped: [Int: [SessionEvent]] = [:]
-        for e in events {
-            let own = owner(e).flatMap { shots[$0] == nil ? nil : $0 }
-            let k = own ?? shotPoints.first { shots[$0]!.t >= e.t } ?? last
-            grouped[k, default: []].append(e)
-        }
-        var out: [Int: [String]] = [:]
-        for (k, evs) in grouped {
-            var notes = evs.filter { ![.click, .appSwitch, .window, .clear, .erase].contains($0.kind) }.compactMap { e -> String? in
-                let isMark = [.annotation, .textNote, .gesture].contains(e.kind)
-                // A mark says something only when it's on a thing with a name (or is text); otherwise only a
-                // problem with it is worth a line.
-                let said = note(e)
-                guard isMark else { return said }
-                if owner(e) == nil { return (said ?? "✏️ a mark") + " (no point is about it)" }
-                if !shots[k]!.picture.marks.contains(where: { $0.t == e.t }) { return (said ?? "✏️ a mark") + " (not in the picture)" }
-                return said
-            }
-            var pages: [String] = []
-            for e in evs where (e.kind == .appSwitch || e.kind == .window) && e.t >= 0.5 {
-                // The header has the full address; here the path is enough to follow along.
-                let page = shortPage(e)
-                if !pages.contains(page) { pages.append(page) }
-            }
-            if !pages.isEmpty {
-                notes.append("🪟 " + (pages.count > 2 ? [pages[0], "…", pages[pages.count - 1]] : pages).joined(separator: " → "))
-            }
-            out[k] = notes
-        }
-        return out
-    }
-
-    /// A page as a path (`/projects/…/logs?log=…`), or the window title without a URL.
-    private func shortPage(_ e: SessionEvent) -> String {
-        guard let raw = e.url, let u = URL(string: raw) else { return e.window ?? e.app ?? "" }
-        if u.isFileURL { return u.lastPathComponent }
-        var path = u.path
-        if let q = u.query { path += "?" + q }
-        return "`\(path)`"
-    }
-
-    private func note(_ e: SessionEvent) -> String? {
-        switch e.kind {
-        case .annotation:
-            // "drew a red mark" is in the picture; what it's on is the part worth saying.
-            guard let element = e.element, !element.hasPrefix("unknown") else { return nil }
-            return "✏️ on \(element)"
-        case .textNote:
-            return "✏️ wrote \"\(e.text ?? "")\""
-        case .click:
-            let on = e.element.map { " \($0)" } ?? ""
-            return "🖱 clicked\(on)"
-        case .keys:
-            guard let text = e.text, !text.trimmingCharacters(in: .whitespaces).isEmpty else { return nil }
-            return "⌨️ typed `\(text)`"
-        case .shortcut:
-            return "⌨️ pressed `\(e.text ?? "")`"
-        case .appSwitch, .window:
-            return e.t < 0.5 ? nil : "🪟 \(context(e))"
-        case .clear:
-            return "✏️ cleared drawings"
-        case .console:
-            return "⚠️ \(e.text ?? "console error")"
-        case .gesture:
-            return nil
-        case .sessionStart, .sessionEnd, .erase, .scroll:
-            return nil
-        }
-    }
-
-    private func context(_ e: SessionEvent) -> String {
-        var s = e.app ?? ""
-        if let w = e.window { s += " — \(w)" }
-        if let u = e.url {
-            let url = URL(string: u).flatMap { $0.isFileURL ? $0.path : nil } ?? u
-            s += " (`\(url)`)"
-        }
-        return s
+    /// For History: the words with each picture's number where it was made, and the pictures.
+    func summary() -> Data? {
+        let json: [String: Any] = [
+            "version": 1,
+            "place": place,
+            "length": Fmt.clock(duration, decimals: false),
+            "words": transcriptSource,
+            "narration": timeline.narration.map { piece -> [String: Any] in
+                var d: [String: Any] = ["text": piece.text]
+                if let m = piece.marker { d["marker"] = m }
+                return d
+            },
+            "pictures": pictures.map { ["n": $0.n, "path": $0.path, "t": ($0.t * 100).rounded() / 100] },
+        ]
+        return try? JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
     }
 }

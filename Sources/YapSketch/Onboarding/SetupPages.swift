@@ -267,112 +267,6 @@ private struct CloudModels: View {
     }
 }
 
-// MARK: Smart pictures
-
-struct SmartPicturesPage: View {
-    @ObservedObject var model: Onboarding
-    @State private var chosen: String?
-    @State private var known: Set<String> = []
-    @State private var revision = 0
-
-    private var accounts: [Account] { Accounts.shared.all.filter { $0.provider.jev != nil } }
-    private var connected: [String] { accounts.filter(\.provider.isConnected).map(\.id) }
-
-    var body: some View {
-        HStack(spacing: 0) {
-            SetupSidebar(model: model, current: .smartPictures)
-            Group {
-                if let route = Jev.route(), Credentials.problem(for: route.provider.id) == nil, !model.showJevAccounts {
-                    on(route.provider)
-                } else {
-                    list
-                }
-            }
-            .padding(.horizontal, 40).padding(.top, 34).padding(.bottom, 28)
-        }
-        .id(revision)
-        .onAppear {
-            known = Set(connected)
-            chosen = Jev.route()?.provider.id
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .yapSketchAccountsChanged)) { _ in
-            let now = Set(self.connected)
-            if let new = now.subtracting(known).first { chosen = new }
-            known = now
-            revision += 1
-        }
-    }
-
-    private func on(_ provider: any Provider) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            SetupStage(height: 150) { NumberedPictureExample() }
-            SetupTitle("Smart pictures are on.").padding(.top, 22)
-            Text(
-                "Jev runs through your \(provider.name) account. It ties each thing you say to the spot you marked, so your agent finds what you mean faster and spends fewer tokens."
-            )
-            .font(.ui(14)).foregroundStyle(.soft).fixedSize(horizontal: false, vertical: true).padding(.top, 8)
-            HStack(spacing: 10) {
-                ProviderMark(id: provider.id, name: provider.name, size: 20)
-                Text("Jev with \(provider.name)").font(.ui(13.5, .medium)).foregroundStyle(.doneText)
-                Spacer()
-                Button("Use another account") { model.showJevAccounts = true }.buttonStyle(.plain).font(.ui(12.5)).foregroundStyle(.doneText)
-                    .underline()
-            }
-            .padding(.horizontal, 14).padding(.vertical, 11)
-            .background(RoundedRectangle(cornerRadius: 12).fill(.doneWash))
-            .padding(.top, 16)
-            Spacer(minLength: 12)
-            HStack {
-                Button("Back") { model.goBack() }.buttonStyle(TextButtonStyle(color: .soft))
-                Spacer()
-                Button("Continue") {
-                    model.useJev(provider.id)
-                    model.goNext()
-                }
-                .buttonStyle(.inkLarge).keyboardShortcut(.defaultAction)
-            }
-        }
-    }
-
-    private var list: some View {
-        let connected = connected
-        let pick = chosen.flatMap { connected.contains($0) ? $0 : nil } ?? connected.last
-        return VStack(alignment: .leading, spacing: 0) {
-            SetupStage(height: 104) { NumberedPictureExample(compact: true) }
-            SetupTitle("Turn on smart pictures.").padding(.top, 16)
-            Text(
-                "Your agent finds what you mean faster and spends fewer tokens. Connect one of these accounts to use Jev."
-            )
-            .font(.ui(13.5)).foregroundStyle(.soft).fixedSize(horizontal: false, vertical: true).padding(.top, 6)
-            RowsCard {
-                ForEach(Array(accounts.enumerated()), id: \.element.id) { i, account in
-                    if i > 0 { RowRule() }
-                    ProviderRow(
-                        account: account, primary: false, choosable: connected.count > 1, chosen: pick == account.id, compact: true
-                    ) { chosen = account.id }
-                }
-            }
-            .padding(.top, 12)
-            ErrorLine(accounts: accounts)
-            Spacer(minLength: 8)
-            HStack(spacing: 8) {
-                Button("Back") { model.goBack() }.buttonStyle(TextButtonStyle(color: .soft))
-                Spacer()
-                if pick == nil {
-                    Button("Skip for now") { model.goNext() }.buttonStyle(TextButtonStyle())
-                }
-                Button("Continue") {
-                    guard let pick else { return }
-                    model.useJev(pick)
-                    model.goNext()
-                }
-                .buttonStyle(.inkLarge).keyboardShortcut(.defaultAction)
-                .disabled(pick == nil)
-            }
-        }
-    }
-}
-
 // MARK: Pieces
 
 private struct SetupTitle: View {
@@ -442,32 +336,22 @@ private struct ProviderRow: View {
     var note: String?
     let choose: () -> Void
 
-    @State private var entering = false
-    @State private var key = ""
-    @State private var checking = false
-    @State private var problem: String?
-    @FocusState private var keyFocused: Bool
-
     private var connected: Bool { if case .connected = account.state { true } else { false } }
     private var signingIn: Bool { if case .signingIn = account.state { true } else { false } }
 
     var body: some View {
         let row = HStack(spacing: compact ? 10 : 12) {
             ProviderMark(id: account.id, name: account.provider.name, size: compact ? 26 : 32)
-            if entering, case .apiKey(let getOne, _) = account.provider.connect {
-                keyField(getOne)
-            } else {
-                HStack(spacing: 4) {
-                    Text(account.provider.name).font(.ui(compact ? 14 : 14.5, .medium)).foregroundStyle(.ink)
-                    if let note, !signingIn { Text("· \(note)").font(.ui(12.5)).foregroundStyle(.soft) }
-                }
-                .lineLimit(1)
-                .fixedSize()
-                Spacer(minLength: 8)
-                trailing
+            HStack(spacing: 4) {
+                Text(account.provider.name).font(.ui(compact ? 14 : 14.5, .medium)).foregroundStyle(.ink)
+                if let note, !signingIn { Text("· \(note)").font(.ui(12.5)).foregroundStyle(.soft) }
             }
+            .lineLimit(1)
+            .fixedSize()
+            Spacer(minLength: 8)
+            trailing
         }
-        // One height whatever the row shows (Connect, the key field, waiting, Connected).
+        // One height whatever the row shows (Connect, waiting, Connected).
         .padding(.horizontal, 14)
         .frame(height: compact ? 46 : 58)
 
@@ -498,10 +382,7 @@ private struct ProviderRow: View {
                 if problem == .outOfFunds, let billing = account.provider.billing {
                     Button(billing.topUp) { NSWorkspace.shared.open(billing.url) }.buttonStyle(.paper)
                 } else if problem == .disconnected {
-                    Button("Reconnect") {
-                        if case .apiKey = account.provider.connect { entering = true } else { account.signIn() }
-                    }
-                    .buttonStyle(.paper)
+                    Button("Reconnect", action: account.signIn).buttonStyle(.paper)
                 }
             } else {
                 HStack(spacing: 6) {
@@ -532,63 +413,10 @@ private struct ProviderRow: View {
             ProgressView().controlSize(.small)
             Button("Cancel") { account.cancel() }.buttonStyle(.paper)
         case .off:
-            Button("Connect") {
-                if case .apiKey = account.provider.connect {
-                    entering = true
-                } else {
-                    account.signIn()
-                }
-            }
-            .buttonStyle(InkOrPaper(ink: primary))
+            Button("Connect", action: account.signIn).buttonStyle(InkOrPaper(ink: primary))
         }
     }
 
-    private func keyField(_ getOne: URL) -> some View {
-        HStack(spacing: 10) {
-            SecureField("API key", text: $key, prompt: Text("Paste your \(account.provider.name) API key").foregroundColor(.faint))
-                .labelsHidden()
-                .textFieldStyle(.plain)
-                .font(.ui(13))
-                .foregroundStyle(.ink)
-                .focused($keyFocused)
-                .padding(.horizontal, 10)
-                .frame(height: 30)
-                .background(RoundedRectangle(cornerRadius: 8).fill(.paper))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8).strokeBorder(problem != nil ? .coral : keyFocused ? .ink : .line, lineWidth: keyFocused || problem != nil ? 1.5 : 1)
-                )
-                .onAppear { keyFocused = true }
-                .onSubmit(save)
-                .onExitCommand {
-                    entering = false
-                    key = ""
-                    problem = nil
-                }
-            if checking {
-                ProgressView().controlSize(.small)
-            } else if let problem {
-                Text(problem).font(.ui(12)).foregroundStyle(.coralText).lineLimit(1).help(problem)
-            } else {
-                Link(destination: getOne) { Text("Get a key").underline() }.font(.ui(12.5)).foregroundStyle(.soft).fixedSize()
-            }
-            Button("Save", action: save).buttonStyle(.ink).disabled(key.isEmpty || checking)
-        }
-    }
-
-    private func save() {
-        checking = true
-        problem = nil
-        Task {
-            let result = await account.save(key: key)
-            checking = false
-            if result == .works || result == .outOfFunds {
-                entering = false
-                key = ""
-            } else {
-                problem = result.message(account.provider.name)
-            }
-        }
-    }
 }
 
 private struct InkOrPaper: ButtonStyle {
@@ -660,47 +488,5 @@ private struct Bar: View {
             }
         }
         .frame(height: 6)
-    }
-}
-
-private struct NumberedPictureExample: View {
-    var compact = false
-
-    var body: some View {
-        let s: CGFloat = compact ? 1 : 1.15
-        HStack(spacing: 14 * s) {
-            ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 10 * s).fill(.card)
-                RoundedRectangle(cornerRadius: 10 * s).strokeBorder(.line)
-                block.offset(x: 12 * s, y: 26 * s)
-                block.offset(x: 54 * s, y: 26 * s)
-                block.offset(x: 96 * s, y: 34 * s)
-                Loop().stroke(.coral, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                    .frame(width: 54 * s, height: 46 * s).offset(x: 88 * s, y: 24 * s)
-                Text("1").font(.ui(10 * s, .semibold)).foregroundStyle(.white)
-                    .frame(width: 16 * s, height: 16 * s).background(Circle().fill(.coral)).offset(x: 6 * s, y: 6 * s)
-            }
-            .frame(width: 150 * s, height: 74 * s)
-            (Text("these cards aren’t\ncentered ") + Text("[1]").foregroundColor(.coral))
-                .font(.mono(12.5 * s)).foregroundStyle(.ink).lineSpacing(3)
-        }
-    }
-
-    private var block: some View {
-        let s: CGFloat = compact ? 1 : 1.15
-        return RoundedRectangle(cornerRadius: 6 * s).fill(.rule).frame(width: 34 * s, height: 30 * s)
-    }
-
-    struct Loop: Shape {
-        func path(in r: CGRect) -> Path {
-            func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint { CGPoint(x: r.minX + r.width * x, y: r.minY + r.height * y) }
-            var path = Path()
-            path.move(to: p(0.2, 0.26))
-            path.addCurve(to: p(0.98, 0.45), control1: p(0.42, 0.02), control2: p(0.93, 0.06))
-            path.addCurve(to: p(0.38, 0.98), control1: p(1.03, 0.85), control2: p(0.67, 1.02))
-            path.addCurve(to: p(0.07, 0.5), control1: p(0.13, 0.95), control2: p(0.02, 0.73))
-            path.addCurve(to: p(0.3, 0.2), control1: p(0.1, 0.36), control2: p(0.18, 0.28))
-            return path
-        }
     }
 }

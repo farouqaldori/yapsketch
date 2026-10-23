@@ -3,18 +3,15 @@ import SwiftUI
 
 struct ModelsPane: View {
     @ObservedObject private var store = ModelStore.shared
-    @AppStorage("smartPictures") private var smartPictures = true
     @AppStorage("modelUnloadMinutes") private var unload = 60
     /// A model chosen before it was downloaded: used once it's here.
     @State private var pending: String?
-    @AppStorage("jevProvider") private var jevProvider = ""
     @State private var accountsRevision = 0
 
     var body: some View {
         BrandPage("Models") {
             BrandSection("In use") {
                 speech
-                pictures
             }
             .id(accountsRevision)
             BrandSection("Accounts") {
@@ -100,41 +97,6 @@ struct ModelsPane: View {
         store.selectedID = id
         NotificationCenter.default.post(name: .yapSketchModelChanged, object: nil)
     }
-
-    private var pictures: some View {
-        let connected = Providers.connected.filter { $0.jev != nil }
-        let on = smartPictures
-        return BrandRow(
-            "Smart pictures",
-            subtitle: connected.isEmpty ? "Connect an account below to turn it on" : nil,
-            badge: "Recommended"
-        ) {
-            Picker(
-                "Smart pictures",
-                selection: Binding(
-                    get: { on ? (Jev.route()?.provider.id ?? "off") : "off" },
-                    set: { v in
-                        smartPictures = v != "off"
-                        if v != "off" { jevProvider = v }
-                    })
-            ) {
-                Text("Off").tag("off")
-                if !connected.isEmpty { Divider() }
-                ForEach(connected, id: \.id) { p in
-                    Label {
-                        Text(p.name)
-                    } icon: {
-                        Image(nsImage: ProviderLogo.menuIcon(p.id))
-                    }.tag(p.id)
-                }
-            }
-            .labelsHidden()
-            // The menu is sized for its text only, so the logo beside it would cut the name short.
-            .frame(minWidth: 150)
-            .disabled(connected.isEmpty)
-        }
-    }
-
 }
 
 private struct LocalModelRow: View {

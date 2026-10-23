@@ -1,17 +1,12 @@
 import AVFoundation
 import Foundation
-import ImageIO
-import UniformTypeIdentifiers
 
-/// Turns a finished recording into REPORT.md: my narration with a numbered screenshot
-/// at each point I make, plus the transcript and raw events.
+/// Turns a finished recording into its paste (PROMPT.md), report (REPORT.md) and History entry
+/// (report.json): what I said and did in order, with a picture wherever I drew or pointed.
 struct PostProcessor {
     let session: Session
     /// Transcribe the whole recording again after it ends (more accurate than the live words).
     let refineTranscript: Bool
-    /// Let Jev divide the words into points, match the marks to them and pick their moments
-    /// (sends the words and some frames to the Jev provider).
-    var smartPictures = false
     var progress: (String) -> Void = { _ in }
 
     /// How long each step takes, in the log (a step ends when the next one starts).
@@ -55,6 +50,9 @@ struct PostProcessor {
             } else if let p = await ParakeetOffline.transcribe(audio: audio), !p.segments.isEmpty {
                 transcript = p.segments
                 source = ModelStore.current()?.name ?? p.model
+            } else if let earlier = earlierTranscript() {
+                // Made again (`yapsketch reprocess`) when neither works: the words it had.
+                (transcript, source) = earlier
             }
         }
         transcript = TextCleanup.apply(transcript)
@@ -75,74 +73,40 @@ struct PostProcessor {
         }
         try? (lines.joined(separator: "\n") + "\n").write(to: session.eventsURL, atomically: true, encoding: .utf8)
 
-        // A previous run's answers are kept where the question is the same.
         let words = transcript.flatMap { $0.words ?? [] }
-        let app = events.last(where: { $0.kind == .appSwitch || $0.kind == .window })
-        let marks = events.filter { [.annotation, .textNote, .gesture].contains($0.kind) }
-        let previous = PointFinder.load(from: dir)
-        let saved = previous.map { $0.points ?? $0.segments } ?? []
-        var fresh: SessionAnalysis?
-        if smartPictures {
-            step("Analyzing…")
-            let screen = [app?.app, app?.window].compactMap { $0 }.joined(separator: " — ")
-            fresh = await PointFinder(words: words, screen: screen, display: session.display.size, marks: marks, previous: previous).run()
-        }
-        let analysis = fresh ?? previous
-        let segments =
-            analysis?.segments
-            ?? transcript.enumerated().map {
-                SegmentAnalysis(index: $0.offset, start: $0.element.start, end: $0.element.end, text: $0.element.text)
-            }
-        // Small frames and screen changes were noted while recording.
-        let frameLog = FrameLog.load(from: dir)
-        // Marks on different screens each need their own picture, so a point spanning them is divided there.
-        let screens = frameLog.map { ScreenSplit(session: session, events: events, frames: $0) }
-        var points: [SegmentAnalysis]
-        if let fresh, let made = fresh.points {
-            points = made
-            if let screens {
-                points = PointFinder.divide(points, marks: marks, apart: screens.apart(points, marks: marks), words: words, splits: [])
-            }
-        } else {
-            let assigned = PointFinder.assign(
-                marks, to: PointFinder.points(segments, saved: [previous?.segments ?? [], saved]), judged: analysis?.marks ?? [])
-            points = PointFinder.divide(
-                assigned, marks: marks, apart: (screens?.apart(assigned, marks: marks) ?? []) + (analysis?.apart ?? []), words: words,
-                splits: analysis?.splits ?? [])
-        }
-
-        step("Taking screenshots…")
-        let shots = await pictures(
-            asset: asset, points: points, events: events, duration: duration, words: words, frames: frameLog, previous: saved)
-        for k in points.indices { points[k].n = shots[k]?.n }
-        var record = analysis ?? SessionAnalysis(segments: segments)
-        record.version = SessionAnalysis().version
-        record.points = points
-        PointFinder.write(record, to: dir)
+        step("Taking pictures…")
+        let pictures = await pictures(asset: asset, events: events, duration: duration)
+        let timeline = Timeline(words: words, segments: transcript, events: events, pictures: pictures)
 
         steps.next("Report")
         let builder = ReportBuilder(
-            session: session, duration: duration, events: events, points: points,
-            shots: shots, transcriptSource: source, segmentedBy: (analysis?.splits.isEmpty ?? true) ? nil : "Jev")
+            session: session, duration: duration, events: events, timeline: timeline, pictures: pictures, transcriptSource: source)
         let reportURL = dir.appendingPathComponent("REPORT.md")
         try? builder.markdown().write(to: reportURL, atomically: true, encoding: .utf8)
         try? builder.brief().write(to: dir.appendingPathComponent("PROMPT.md"), atomically: true, encoding: .utf8)
+        try? builder.summary()?.write(to: dir.appendingPathComponent("report.json"))
         try? FileManager.default.removeItem(at: dir.appendingPathComponent("audio-from-video.m4a"))
         steps.next(nil)
         return Output(reportURL: reportURL, transcriptSource: source, note: note(since: started, transcribedBy: source))
     }
 
-    /// The first thing a provider got wrong while this ran, if the report is the poorer for it:
-    /// cloud speech that fell back to this Mac, or Jev that didn't answer.
+    /// The words from when the report was last made, if they were timed word by word (better than
+    /// the live captions).
+    private func earlierTranscript() -> ([TranscriptSegment], String)? {
+        guard let data = try? Data(contentsOf: session.dir.appendingPathComponent("transcript.json")),
+            let segments = try? JSONDecoder().decode([TranscriptSegment].self, from: data),
+            segments.contains(where: { !($0.words ?? []).isEmpty })
+        else { return nil }
+        let summary = (try? Data(contentsOf: session.dir.appendingPathComponent("report.json")))
+            .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+        return (segments, summary?["words"] as? String ?? "an earlier transcription")
+    }
+
+    /// What the cloud speech model got wrong, if the words came from this Mac instead.
     private func note(since started: Date, transcribedBy source: String) -> String? {
-        if refineTranscript, let cloud = CloudSpeech.selected(), source != "\(cloud.name) via \(cloud.providerName)" {
-            let trouble = ProviderHTTP.trouble(for: cloud.providerID, since: started) ?? .offline
-            return trouble.sentence(cloud.providerName)
-        }
-        if smartPictures, let route = Jev.route(), let trouble = ProviderHTTP.trouble(for: route.provider.id, since: started) {
-            return trouble.sentence(route.provider.name)
-        }
-        return nil
+        guard refineTranscript, let cloud = CloudSpeech.selected(), source != "\(cloud.name) via \(cloud.providerName)" else { return nil }
+        let trouble = ProviderHTTP.trouble(for: cloud.providerID, since: started) ?? .offline
+        return trouble.sentence(cloud.providerName)
     }
 
     /// The separate mic track, or, if that file is unusable (e.g. the app was killed

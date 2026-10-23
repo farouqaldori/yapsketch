@@ -644,9 +644,28 @@ h1 {
   font-size: 15.5px;
   line-height: 1.6;
 }
-.reference {
-  color: var(--coral);
+/* The paste: each line at its time, what was drawn in coral. */
+.timeline p {
+  display: flex;
+  gap: 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.timeline time {
+  flex: none;
+  padding-top: 0.12em;
   font: 0.85em var(--mono);
+  color: #a39a8e;
+}
+.timeline .did {
+  color: var(--coral);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 21px;
+}
+.timeline .did time {
+  font-size: 1em;
+  padding-top: 0;
 }
 .pics {
   display: flex;
@@ -1210,13 +1229,6 @@ kbd {
   stroke-width: 2.4;
   stroke-linecap: round;
 }
-.sketch .link {
-  fill: none;
-  stroke: var(--coral);
-  stroke-width: 1.6;
-  stroke-dasharray: 0 4;
-  stroke-linecap: round;
-}
 .mini-bar {
   display: inline-flex;
   align-items: center;
@@ -1418,6 +1430,9 @@ kbd {
   padding-left: 2ch;
   color: #8fd19e;
 }
+.term-body .out .file {
+  padding-left: 0;
+}
 .term-body .gap {
   height: 0.8em;
 }
@@ -1607,6 +1622,14 @@ footer .x svg {
   }
   .output p {
     font-size: 11px;
+  }
+  .timeline p {
+    gap: 8px;
+    font-size: 9.5px;
+  }
+  .timeline .did {
+    font-size: 8px;
+    line-height: 14.7px;
   }
   .pics {
     gap: 8px;

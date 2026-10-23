@@ -9,7 +9,6 @@ struct OnboardingView: View {
             switch model.step {
             case .welcome: WelcomePage(model: model)
             case .speech(let stage): SpeechPage(model: model, stage: stage)
-            case .smartPictures: SmartPicturesPage(model: model)
             case .permission(let p): PermissionPage(model: model, permission: p)
             case .done: DonePage(model: model)
             }
@@ -29,14 +28,13 @@ private struct WelcomePage: View {
     private var subtitle: String {
         let n = Permission.allCases.count - model.granted.count
         let words = ["no", "one", "two", "three", "four"]
-        if n == 0 { return "Two quick choices, and your permissions are already on." }
-        return "Two quick choices and \(words[min(n, 4)]) permission\(n == 1 ? "" : "s"). About two minutes."
+        if n == 0 { return "One quick choice, and your permissions are already on." }
+        return "One quick choice and \(words[min(n, 4)]) permission\(n == 1 ? "" : "s"). About two minutes."
     }
 
     private var items: [(id: String, symbol: String, title: String, purpose: String, done: Bool)] {
         [
             ("speech", "waveform", "Speech", "On your Mac or in the cloud", false),
-            ("smart", "viewfinder", "Smart pictures", "Points your agent to the right spot", false),
         ] + Permission.allCases.map { p in (p.rawValue, p.symbol, p.title, p.purpose, model.granted.contains(p)) }
     }
 
@@ -207,10 +205,10 @@ private struct PermissionPage: View {
 }
 
 enum SetupItem: Hashable {
-    case speech, smartPictures
+    case speech
     case permission(Permission)
 
-    static var all: [SetupItem] { [.speech, .smartPictures] + Permission.allCases.map { .permission($0) } }
+    static var all: [SetupItem] { [.speech] + Permission.allCases.map { .permission($0) } }
 }
 
 struct SetupSidebar: View {
@@ -229,7 +227,6 @@ struct SetupSidebar: View {
                 Button {
                     switch item {
                     case .speech: model.step = .speech(.choose)
-                    case .smartPictures: model.step = .smartPictures
                     case .permission(let p): model.step = .permission(p)
                     }
                 } label: {
@@ -268,7 +265,6 @@ struct SetupSidebar: View {
     private func title(_ item: SetupItem) -> String {
         switch item {
         case .speech: "Speech"
-        case .smartPictures: "Smart pictures"
         case .permission(let p): p.title
         }
     }
@@ -276,7 +272,6 @@ struct SetupSidebar: View {
     private func isDone(_ item: SetupItem) -> Bool {
         switch item {
         case .speech: model.useCloud ? CloudSpeech.selected() != nil : store.installed.contains(model.localModel)
-        case .smartPictures: Jev.route() != nil
         case .permission(let p): model.granted.contains(p)
         }
     }

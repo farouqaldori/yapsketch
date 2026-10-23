@@ -379,7 +379,7 @@ private struct RecordingDetail: View {
                     recording: true, chip: id, title: item.title,
                     details: item.failure != nil
                         ? item.date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
-                        : "\(item.date.formatted(.dateTime.month(.abbreviated).day().hour().minute())) · \(item.length) · \(item.points.count) point\(item.points.count == 1 ? "" : "s")"
+                        : "\(item.date.formatted(.dateTime.month(.abbreviated).day().hour().minute())) · \(item.length) · \(item.points.count) picture\(item.points.count == 1 ? "" : "s")"
                 ) {
                     Button(copied ? "Copied" : "Copy", action: copy).buttonStyle(.ink).help("Copy the instructions for your agent")
                         .disabled(item.failure != nil)

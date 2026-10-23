@@ -31,11 +31,6 @@ if let i = args.firstIndex(of: "--snapshot-overlay"), i + 1 < args.count {
     DevSnapshot.run(to: URL(fileURLWithPath: args[i + 1]))
     exit(0)
 }
-if let i = args.firstIndex(of: "--describe-test"), i + 1 < args.count {
-    _ = NSApplication.shared
-    DevSnapshot.describeTest(to: URL(fileURLWithPath: args[i + 1]))
-    exit(0)
-}
 if let i = args.firstIndex(of: "--snapshot-settings"), i + 2 < args.count {
     _ = NSApplication.shared
     MainActor.assumeIsolated {
@@ -69,6 +64,11 @@ if let i = args.firstIndex(of: "--snapshot-settings"), i + 2 < args.count {
 if let i = args.firstIndex(of: "--snapshot-onboarding"), i + 1 < args.count {
     _ = NSApplication.shared
     MainActor.assumeIsolated { DevSnapshot.onboarding(to: URL(fileURLWithPath: args[i + 1])) }
+    exit(0)
+}
+if args.contains("--demo-onboarding") {
+    _ = NSApplication.shared
+    MainActor.assumeIsolated { DevSnapshot.demoOnboarding() }
     exit(0)
 }
 if let i = args.firstIndex(of: "--snapshot-update"), i + 1 < args.count {

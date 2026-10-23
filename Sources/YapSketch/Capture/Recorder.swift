@@ -9,8 +9,6 @@ import ScreenCaptureKit
 final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, SCRecordingOutputDelegate, @unchecked Sendable {
     /// Called on the audio queue for every microphone buffer.
     var onMicBuffer: ((CMSampleBuffer) -> Void)?
-    /// Every screen frame captured (on the capture queue; keep it quick).
-    var onScreenFrame: ((CVPixelBuffer) -> Void)?
     /// Called once the recording file has started receiving frames.
     var onStarted: (() -> Void)?
     var onError: ((Error) -> Void)?
@@ -56,7 +54,7 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, SCRecordingOut
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         // A screen output is required for SCK to deliver frames to the recording output
-        // without log spam; the same frames also feed the live frame log.
+        // without log spam.
         try stream.addStreamOutput(self, type: .screen, sampleHandlerQueue: videoQueue)
         try stream.addStreamOutput(self, type: .microphone, sampleHandlerQueue: audioQueue)
 
@@ -135,12 +133,6 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, SCRecordingOut
     }
 
     func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        if type == .screen {
-            if let handler = onScreenFrame, sampleBuffer.isValid, let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) {
-                handler(pixels)
-            }
-            return
-        }
         guard type == .microphone, sampleBuffer.isValid, sampleBuffer.dataReadiness == .ready else { return }
         micWriter?.append(sampleBuffer)
         onMicBuffer?(sampleBuffer)

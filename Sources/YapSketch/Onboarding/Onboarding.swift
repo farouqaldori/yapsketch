@@ -12,7 +12,6 @@ final class Onboarding: ObservableObject {
     enum Step: Hashable {
         case welcome
         case speech(SpeechStage)
-        case smartPictures
         case permission(Permission)
         case done
     }
@@ -34,7 +33,6 @@ final class Onboarding: ObservableObject {
     @Published var useCloud = CloudSpeech.selected() != nil
     @Published var localModel = ModelStore.catalog.contains { $0.id == ModelStore.shared.selectedID } ? ModelStore.shared.selectedID : "parakeet-unified"
     @Published var cloudProvider: String? = CloudSpeech.selected()?.providerID
-    @Published var showJevAccounts = false
 
     var onStartRecording: (() -> Void)?
 
@@ -128,8 +126,7 @@ final class Onboarding: ObservableObject {
     var next: Step {
         switch step {
         case .welcome: return .speech(.choose)
-        case .speech: return .smartPictures
-        case .smartPictures, .done: return firstMissing.map { .permission($0) } ?? .done
+        case .speech, .done: return firstMissing.map { .permission($0) } ?? .done
         case .permission(let p):
             let i = Permission.allCases.firstIndex(of: p) ?? 0
             let after = Array(Permission.allCases[(i + 1)...]) + Array(Permission.allCases[..<i])
@@ -147,8 +144,7 @@ final class Onboarding: ObservableObject {
         switch step {
         case .permission(let p):
             let i = Permission.allCases.firstIndex(of: p) ?? 0
-            step = i == 0 ? .smartPictures : .permission(Permission.allCases[i - 1])
-        case .smartPictures: step = .speech(useCloud ? .cloudModels : .localModels)
+            step = i == 0 ? .speech(useCloud ? .cloudModels : .localModels) : .permission(Permission.allCases[i - 1])
         case .speech(.downloading): step = .speech(.localModels)
         case .speech(.cloudModels): step = .speech(.cloud)
         case .speech(.localModels), .speech(.cloud): step = .speech(.choose)
@@ -156,7 +152,7 @@ final class Onboarding: ObservableObject {
         }
     }
 
-    // MARK: Speech and smart pictures
+    // MARK: Speech
 
     func pickLocal(_ m: SpeechModel) {
         useCloud = false
@@ -165,7 +161,7 @@ final class Onboarding: ObservableObject {
         store.selectedID = m.id
         NotificationCenter.default.post(name: .yapSketchModelChanged, object: nil)
         if store.installed.contains(m.id) {
-            step = .smartPictures
+            goNext()
         } else {
             store.download(m)
             step = .speech(.downloading)
@@ -181,17 +177,8 @@ final class Onboarding: ObservableObject {
             store.download(backup)
         }
         store.selectedID = m.id
-        if m.provider?.jev != nil, (defaults.string(forKey: "jevProvider") ?? "").isEmpty {
-            defaults.set(m.providerID, forKey: "jevProvider")
-        }
         NotificationCenter.default.post(name: .yapSketchModelChanged, object: nil)
-        step = .smartPictures
-    }
-
-    func useJev(_ providerID: String) {
-        defaults.set(true, forKey: "smartPictures")
-        defaults.set(providerID, forKey: "jevProvider")
-        showJevAccounts = false
+        goNext()
     }
 
     private func stepChanged() {
@@ -206,7 +193,7 @@ final class Onboarding: ObservableObject {
         case .done:
             savedStep = nil
             atEnd = true
-        case .welcome, .speech, .smartPictures: atEnd = false
+        case .welcome, .speech: atEnd = false
         }
         refresh()
     }

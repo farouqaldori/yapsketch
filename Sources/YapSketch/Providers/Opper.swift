@@ -3,7 +3,7 @@ import Foundation
 struct Opper: Provider {
     let id = "opper"
     let name = "Opper"
-    let offers = "Jev and cloud speech models"
+    let offers = "Cloud speech models"
 
     private static let api = "https://api.opper.ai"
 
@@ -23,11 +23,6 @@ struct Opper: Provider {
     var billing: Billing? {
         Billing(label: "Wallet", url: URL(string: "https://platform.opper.ai/wallet")!, empty: "Wallet is empty", topUp: "Top Up")
     }
-
-    var jev: JevEndpoint? {
-        JevEndpoint(url: URL(string: Self.api + "/v3/compat/v1/systemone")!, model: "typesafe/jev-1.14.0", images: .multipart)
-    }
-
 
     var speech: [SpeechOffer] {
         [

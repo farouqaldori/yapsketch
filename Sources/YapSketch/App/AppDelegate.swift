@@ -24,8 +24,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var session: Session?
     private var clockTimer: Timer?
     private var pointerTimer: Timer?
-    /// Noted while recording so processing is quicker.
-    private var liveFrames: LiveFrames?
     private var recordingStartedAt: Date?
     private var stopNote: String?
     private var state: State = .idle {
@@ -43,7 +41,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private let defaults = UserDefaults.standard
     private var systemAudio: Bool { defaults.bool(forKey: "systemAudio") }
     private var logKeystrokes: Bool { defaults.object(forKey: "logKeystrokes") as? Bool ?? true }
-    private var smartPictures: Bool { defaults.object(forKey: "smartPictures") as? Bool ?? true }
     private var recordWindow: Bool { defaults.bool(forKey: "recordWindow") }
     private var copyWhenDone: Bool { defaults.object(forKey: "copyWhenDone") as? Bool ?? true }
     private var pasteWhenDone: Bool { defaults.bool(forKey: "pasteWhenDone") }
@@ -260,11 +257,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                     self.didStartCapture()
                 }
             }
-            let frames = LiveFrames(
-                dir: session.dir, display: info.size, clock: { [weak session] in session?.now() ?? 0 },
-                pointer: { [weak session] t in session?.pointer(at: t) })
-            liveFrames = frames
-            recorder.onScreenFrame = { pixels in frames.add(pixels) }
             recorder.onMicBuffer = { [weak self, weak recorder] sb in
                 guard let self, self.recorder === recorder else { return }
                 self.live?.append(sb)
@@ -355,8 +347,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         overlay?.isRecording = false
         if let failed {
             try? FileManager.default.removeItem(at: failed.dir)
-            liveFrames?.close()
-            liveFrames = nil
         }
         session = nil
         recorder = nil
@@ -451,15 +441,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     /// `quick` uses only the live captions and video, nothing sent anywhere. `shown` puts its steps in the menu.
     private func processor(for session: Session, quick: Bool = false, shown: Bool = true) -> PostProcessor {
-        var processor = PostProcessor(session: session, refineTranscript: !quick) { [weak self] msg in
+        PostProcessor(session: session, refineTranscript: !quick) { [weak self] msg in
             guard shown else { return }
             DispatchQueue.main.async {
                 guard let self, case .processing = self.state else { return }
                 self.state = .processing(msg)
             }
         }
-        processor.smartPictures = !quick && smartPictures && Jev.apiKey() != nil
-        return processor
     }
 
     /// The report within an overall limit (generous: local speech models are slow on long recordings).
@@ -507,8 +495,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         console.stop()
 
         await recorder.stop()
-        liveFrames?.close()
-        liveFrames = nil
         await live?.finish()
         live = nil
         overlay?.isRecording = false
@@ -783,13 +769,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if info.duration > 0.05 { e.t0 = max(0, e.t - info.duration) }
         e.app = tracker.current?.app
         e.window = tracker.current?.window
-        // What's under an arrow's tip, or the middle of the mark, so the agent can find it in code.
-        let point = info.tip ?? CGPoint(x: info.bbox.midX, y: info.bbox.midY)
-        let global = CGPoint(x: session.display.screen.minX + point.x, y: session.display.screen.minY + point.y)
-        DispatchQueue.global(qos: .userInitiated).async {
-            e.element = InputMonitor.describeElement(at: global)
-            session.log(e)
-        }
+        session.log(e)
     }
 
     private func logErase(_ id: Int) {
@@ -810,25 +790,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         input.clock = { [weak self] in self?.session?.now() ?? 0 }
         input.isSuppressed = { [weak self] in self?.overlay?.drawMode ?? false }
 
-        input.onClickVisual = { [weak self] global in
-            guard let self, let s = self.session, s.display.contains(global), !self.isOnPlayer(global) else { return }
-            self.overlay?.ripple(atLocal: s.display.toScreen(global))
-        }
-        input.onClick = { [weak self] click, element in
-            guard let self, let s = self.session, s.display.contains(click.global) else { return }
-            var onPlayer = false
-            DispatchQueue.main.sync { onPlayer = self.isOnPlayer(click.global) }
-            if onPlayer { return }
+        input.onClick = { [weak self] click in
+            guard let self, let s = self.session, s.display.contains(click.global), !self.isOnPlayer(click.global) else { return }
+            self.overlay?.ripple(atLocal: s.display.toScreen(click.global))
             let local = s.display.toLocal(click.global)
             var e = SessionEvent(t: click.t, kind: .click)
             e.x = local.x.rounded()
             e.y = local.y.rounded()
             e.button = click.button
-            e.element = element
-            DispatchQueue.main.async {
-                e.app = self.tracker.current?.app
-                s.log(e)
-            }
+            e.app = self.tracker.current?.app
+            s.log(e)
         }
         input.onKeys = { [weak self] t, text in
             guard let s = self?.session else { return }
@@ -854,6 +825,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             e.app = ctx.app
             e.window = ctx.window
             e.url = ctx.url
+            // Where the window is in the recording, to crop its pictures to it.
+            if let f = ctx.frame {
+                let o = s.display.toLocal(f.origin)
+                e.bbox = [Double(o.x), Double(o.y), Double(f.width), Double(f.height)].map { ($0 * 10).rounded() / 10 }
+            }
             s.log(e)
         }
 

@@ -3,7 +3,7 @@ import Foundation
 struct OpenRouter: Provider {
     let id = "openrouter"
     let name = "OpenRouter"
-    let offers = "Jev and cloud speech models"
+    let offers = "Cloud speech models"
 
     private static let api = "https://openrouter.ai/api"
 
@@ -20,9 +20,6 @@ struct OpenRouter: Provider {
 
     /// OpenRouter shows the app's name in the user's activity.
     var headers: [String: String] { ["X-Title": "YapSketch", "X-OpenRouter-Title": "YapSketch"] }
-
-    var jev: JevEndpoint? { JevEndpoint(url: URL(string: Self.api + "/alpha/decisions")!, model: "typesafe/jev-1.14", images: .inline) }
-
 
     var speech: [SpeechOffer] {
         [

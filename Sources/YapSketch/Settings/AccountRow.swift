@@ -3,10 +3,6 @@ import SwiftUI
 
 struct AccountRow: View {
     @ObservedObject var account: Account
-    @State private var entering = false
-    @State private var key = ""
-    @State private var checking = false
-    @State private var problem: String?
     @State private var confirmRemove = false
 
     private var provider: any Provider { account.provider }
@@ -23,7 +19,6 @@ struct AccountRow: View {
                 status
                 actions
             }
-            if entering, case .apiKey(let getOne, _) = provider.connect { keyEntry(getOne) }
             if let error = account.error { Text(error).font(.ui(12.5)).foregroundStyle(.coralText) }
         }
         .padding(.horizontal, 16).padding(.vertical, 11)
@@ -56,7 +51,7 @@ struct AccountRow: View {
     @ViewBuilder private var actions: some View {
         switch account.state {
         case .off:
-            if !entering { Button("Connect", action: connect).buttonStyle(.paper) }
+            Button("Connect", action: account.signIn).buttonStyle(.paper)
         case .signingIn(let page):
             HStack(spacing: 8) {
                 if let page { Button("Open Again") { NSWorkspace.shared.open(page.url) }.buttonStyle(.paper) }
@@ -65,7 +60,7 @@ struct AccountRow: View {
         case .connected:
             HStack(spacing: 10) {
                 if account.problem == .disconnected {
-                    Button("Reconnect", action: connect).buttonStyle(.paper)
+                    Button("Reconnect", action: account.signIn).buttonStyle(.paper)
                 } else if account.problem == .outOfFunds, let billing = provider.billing {
                     Button(billing.topUp) { NSWorkspace.shared.open(billing.url) }.buttonStyle(.paper)
                 }
@@ -79,56 +74,6 @@ struct AccountRow: View {
                     Image(systemName: "ellipsis")
                 }
                 .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
-            }
-        }
-    }
-
-    private func connect() {
-        switch provider.connect {
-        case .apiKey:
-            entering = true
-            problem = nil
-        case .browser:
-            account.signIn()
-        }
-    }
-
-    private func keyEntry(_ getOne: URL) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                SecureField("API key", text: $key, prompt: Text("Paste your \(provider.name) API key"))
-                    .labelsHidden()
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(save)
-                if checking { ProgressView().controlSize(.small) }
-                Button("Cancel") {
-                    entering = false
-                    key = ""
-                    problem = nil
-                }
-                .buttonStyle(.paper)
-                Button("Save", action: save).buttonStyle(.ink).keyboardShortcut(.defaultAction).disabled(key.isEmpty || checking)
-            }
-            HStack {
-                if let problem { Text(problem).foregroundStyle(.coralText) }
-                Spacer()
-                Link("Get a key", destination: getOne).foregroundStyle(.ink)
-            }
-            .font(.ui(12.5))
-        }
-    }
-
-    private func save() {
-        checking = true
-        problem = nil
-        Task {
-            let result = await account.save(key: key)
-            checking = false
-            if result == .works || result == .outOfFunds {
-                key = ""
-                entering = false
-            } else {
-                problem = result.message(provider.name)
             }
         }
     }

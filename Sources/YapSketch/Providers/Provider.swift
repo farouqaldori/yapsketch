@@ -12,7 +12,6 @@ protocol Provider: Sendable {
     var billing: Billing? { get }
     var headers: [String: String] { get }
 
-    var jev: JevEndpoint? { get }
     var speech: [SpeechOffer] { get }
     /// Use `ProviderHTTP` so problems are noted.
     func transcribe(_ audio: Data, format: AudioFormat, model: String, key: String) async -> [TranscriptSegment]?
@@ -21,7 +20,6 @@ protocol Provider: Sendable {
 extension Provider {
     var billing: Billing? { nil }
     var headers: [String: String] { [:] }
-    var jev: JevEndpoint? { nil }
     var speech: [SpeechOffer] { [] }
     func transcribe(_ audio: Data, format: AudioFormat, model: String, key: String) async -> [TranscriptSegment]? { nil }
 
@@ -30,22 +28,8 @@ extension Provider {
 }
 
 enum Connect: Sendable {
-    case apiKey(getOne: URL, check: @Sendable (String) async -> KeyCheck)
     /// `show` reports the page (and any code to confirm) while waiting.
     case browser(@Sendable (_ show: @escaping @Sendable (SignInPage) -> Void) async throws -> SignedIn)
-}
-
-enum KeyCheck: Sendable {
-    case works, rejected, outOfFunds, unreachable
-
-    func message(_ name: String) -> String? {
-        switch self {
-        case .works: nil
-        case .rejected: "That key didn't work"
-        case .outOfFunds: "The key works, but \(name) is out of credits"
-        case .unreachable: "Couldn't reach \(name). Check your connection"
-        }
-    }
 }
 
 struct SignInPage: Sendable, Equatable {
@@ -66,14 +50,6 @@ struct Billing: Sendable {
     let topUp: String
 }
 
-struct JevEndpoint: Sendable {
-    let url: URL
-    let model: String
-    /// How pictures travel: multipart parts (System One), or inline in the JSON (Decisions API).
-    let images: Images
-    enum Images: Sendable { case multipart, inline }
-}
-
 struct SpeechOffer: Sendable {
     let model: String
     let name: String
@@ -87,7 +63,7 @@ enum AudioFormat: String, Sendable {
 }
 
 enum Providers {
-    static let all: [any Provider] = [TypeSafe(), Opper(), OpenRouter()]
+    static let all: [any Provider] = [Opper(), OpenRouter()]
 
     static func named(_ id: String?) -> (any Provider)? { all.first { $0.id == id } }
     static var connected: [any Provider] { all.filter(\.isConnected) }

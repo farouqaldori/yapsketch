@@ -7,36 +7,6 @@ import Speech
 /// Debug-only: `YapSketch --snapshot-overlay out.png` renders the overlay with sample
 /// ink, captions and HUD offscreen, to check what gets burned into recordings.
 enum DevSnapshot {
-    /// `--describe-test out.txt`: what the accessibility tree says at points in Chrome's window.
-    static func describeTest(to url: URL) {
-        var lines: [String] = []
-        guard let chrome = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == "com.google.Chrome" }) else {
-            try? "Chrome not running".write(to: url, atomically: true, encoding: .utf8)
-            return
-        }
-        let app = AXUIElementCreateApplication(chrome.processIdentifier)
-        AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, kCFBooleanTrue)
-        RunLoop.main.run(until: Date().addingTimeInterval(1.5))
-        var win: CFTypeRef?
-        AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &win)
-        var posV: CFTypeRef?
-        var sizeV: CFTypeRef?
-        var pos = CGPoint.zero
-        var size = CGSize.zero
-        if let win {
-            AXUIElementCopyAttributeValue(win as! AXUIElement, kAXPositionAttribute as CFString, &posV)
-            AXUIElementCopyAttributeValue(win as! AXUIElement, kAXSizeAttribute as CFString, &sizeV)
-            if let posV { AXValueGetValue(posV as! AXValue, .cgPoint, &pos) }
-            if let sizeV { AXValueGetValue(sizeV as! AXValue, .cgSize, &size) }
-        }
-        lines.append("trusted=\(AXIsProcessTrusted()) window=\(pos) \(size)")
-        for (fx, fy) in [(0.25, 0.25), (0.5, 0.3), (0.75, 0.35), (0.5, 0.5), (0.3, 0.7), (0.8, 0.2)] {
-            let p = CGPoint(x: pos.x + size.width * fx, y: pos.y + size.height * fy)
-            lines.append("(\(fx),\(fy)) -> \(InputMonitor.describeElement(at: p) ?? "nil")")
-        }
-        try? lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
-    }
-
     /// `--snapshot-video-assets dir`: the real toolbar as transparent frames (15 fps, a speaking
     /// recording with a live caption and the pen out) and the status pill, for a demo video.
     @MainActor static func videoAssets(to dir: URL) {
@@ -210,6 +180,40 @@ enum DevSnapshot {
         print(dir.path)
     }
 
+    /// `--demo-onboarding`: the welcome window on screen, going through each page by itself
+    /// (to record it). Prints the window's number, then waits `YAPSKETCH_DEMO_WAIT` seconds
+    /// before the first page turns. Nothing is saved and the real permissions aren't read.
+    @MainActor static func demoOnboarding() {
+        let model = Onboarding.shared
+        model.cloudProvider = Providers.connected.first { !$0.speech.isEmpty }?.id
+        model.debugSet(.welcome, granted: [])
+        let w = model.makeWindow()
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        w.makeKeyAndOrderFront(nil)
+        print(w.windowNumber)
+        fflush(stdout)
+        let pages: [(Double, Onboarding.Step, Set<Permission>, Bool, Bool)] = [
+            (Double(ProcessInfo.processInfo.environment["YAPSKETCH_DEMO_WAIT"] ?? "") ?? 8, .speech(.choose), [], false, false),
+            (4, .speech(.localModels), [], false, false),
+            (4, .speech(.cloud), [], false, false),
+            (3.5, .speech(.cloudModels), [], false, false),
+            (4, .permission(.microphone), [], false, false),
+            (3.5, .permission(.screenRecording), [.microphone], false, false),
+            (2.5, .permission(.screenRecording), [.microphone], true, false),
+            (2.5, .permission(.screenRecording), [.microphone], true, true),
+            (3.5, .permission(.accessibility), [.microphone, .screenRecording], true, false),
+            (2, .permission(.accessibility), [.microphone, .screenRecording, .accessibility], true, false),
+            (2.5, .permission(.inputMonitoring), [.microphone, .screenRecording, .accessibility], true, false),
+            (2.5, .done, Set(Permission.allCases), false, false),
+        ]
+        for (wait, step, granted, opened, reopen) in pages {
+            RunLoop.main.run(until: Date().addingTimeInterval(wait))
+            model.debugSet(step, granted: granted, openedSettings: opened, needsReopen: reopen)
+        }
+        RunLoop.main.run(until: Date().addingTimeInterval(15))
+    }
+
     /// `--snapshot-onboarding <dir>`: each page of the welcome, and the helper card.
     @MainActor static func onboarding(to dir: URL) {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
@@ -231,8 +235,6 @@ enum DevSnapshot {
             ("1c-downloading", .speech(.downloading), [], false, false),
             ("1d-cloud", .speech(.cloud), [], false, false),
             ("1e-cloud-models", .speech(.cloudModels), [], false, false),
-            ("1f-smart-pictures", .smartPictures, [], false, false),
-            ("1g-smart-pictures-accounts", .smartPictures, [], false, false),
             ("2-microphone", .permission(.microphone), [], false, false),
             ("3-screen-recording", .permission(.screenRecording), [.microphone], false, false),
             ("3b-screen-recording-waiting", .permission(.screenRecording), [.microphone], true, false),
@@ -244,7 +246,6 @@ enum DevSnapshot {
         model.cloudProvider = Providers.connected.first { !$0.speech.isEmpty }?.id
         for (name, step, granted, opened, reopen) in pages {
             model.debugSet(step, granted: granted, openedSettings: opened, needsReopen: reopen)
-            model.showJevAccounts = name.hasSuffix("-accounts")
             capture(w, name)
         }
         w.orderOut(nil)
