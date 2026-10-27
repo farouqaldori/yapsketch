@@ -13,7 +13,7 @@ final class OverlayWindow: NSPanel {
 /// captured with the screen, so these end up in the video and the screenshots.
 final class OverlayController {
     let canvas: CanvasView
-    private let window: OverlayWindow
+    private var window: OverlayWindow
     let screen: NSScreen
     private let root: NSView
     private let keycast = Pill(fontSize: 18, weight: .medium, mono: true)
@@ -32,24 +32,12 @@ final class OverlayController {
 
     init(screen: NSScreen) {
         self.screen = screen
-        window = OverlayWindow(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        window.hidesOnDeactivate = false
-        window.isFloatingPanel = true
-        window.setFrame(screen.frame, display: false)
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.hasShadow = false
-        window.level = .screenSaver
-        window.ignoresMouseEvents = true
-        window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        window.isReleasedWhenClosed = false
-
         root = NSView(frame: CGRect(origin: .zero, size: screen.frame.size))
         root.wantsLayer = true
         canvas = CanvasView(frame: root.bounds)
         canvas.autoresizingMask = [.width, .height]
         root.addSubview(canvas)
-        window.contentView = root
+        window = Self.makeWindow(on: screen, showing: root)
 
         keycast.isHidden = true
         root.addSubview(keycast)
@@ -65,6 +53,22 @@ final class OverlayController {
             self?.updateVisibility()
             self?.onStateChange?()
         }
+    }
+
+    private static func makeWindow(on screen: NSScreen, showing root: NSView) -> OverlayWindow {
+        let window = OverlayWindow(contentRect: screen.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        window.hidesOnDeactivate = false
+        window.isFloatingPanel = true
+        window.setFrame(screen.frame, display: false)
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.hasShadow = false
+        window.level = .screenSaver
+        window.ignoresMouseEvents = true
+        window.collectionBehavior = PanelMotion.collectionBehavior
+        window.isReleasedWhenClosed = false
+        window.contentView = root
+        return window
     }
 
     private var size: CGSize { root.bounds.size }

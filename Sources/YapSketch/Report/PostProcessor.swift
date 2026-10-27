@@ -44,11 +44,17 @@ struct PostProcessor {
         var source = transcript.isEmpty ? "none" : "Apple on-device (live)"
         if refineTranscript, let audio = await audioSource(asset: asset) {
             step("Transcribing…")
-            if let cloud = CloudSpeech.selected(), let segs = await CloudSpeech.transcribe(audio: audio, model: cloud), !segs.isEmpty {
-                transcript = segs
+            // Long silences (drawing, reading) left out: models make words up in them. The times
+            // are put back where they were in the recording.
+            let speech = await Task.detached(priority: .userInitiated) { Self.speechOnly(audio, in: dir) }.value
+            defer { if let speech { try? FileManager.default.removeItem(at: speech.url) } }
+            let heard = speech?.url ?? audio
+            func timed(_ segments: [TranscriptSegment]) -> [TranscriptSegment] { speech.map { $0.trimmed.original(segments) } ?? segments }
+            if let cloud = CloudSpeech.selected(), let segs = await CloudSpeech.transcribe(audio: heard, model: cloud), !segs.isEmpty {
+                transcript = timed(segs)
                 source = "\(cloud.name) via \(cloud.providerName)"
-            } else if let p = await ParakeetOffline.transcribe(audio: audio), !p.segments.isEmpty {
-                transcript = p.segments
+            } else if let p = await LocalSpeech.shared.transcribe(audio: heard), !p.segments.isEmpty {
+                transcript = timed(p.segments)
                 source = ModelStore.current()?.name ?? p.model
             } else if let earlier = earlierTranscript() {
                 // Made again (`yapsketch reprocess`) when neither works: the words it had.
@@ -88,6 +94,34 @@ struct PostProcessor {
         try? FileManager.default.removeItem(at: dir.appendingPathComponent("audio-from-video.m4a"))
         steps.next(nil)
         return Output(reportURL: reportURL, transcriptSource: source, note: note(since: started, transcribedBy: source))
+    }
+
+    /// The recording's audio without its long silences, if it has any worth leaving out.
+    private static func speechOnly(_ audio: URL, in dir: URL) -> (url: URL, trimmed: SpeechCheck.Trimmed)? {
+        guard let data = try? Audio16k.floatData(audio) else { return nil }
+        let samples = data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+        guard let trimmed = SpeechCheck.trimmed(samples),
+            let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false),
+            let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(trimmed.samples.count)),
+            let channel = buffer.floatChannelData
+        else { return nil }
+        buffer.frameLength = AVAudioFrameCount(trimmed.samples.count)
+        trimmed.samples.withUnsafeBufferPointer { channel[0].update(from: $0.baseAddress!, count: trimmed.samples.count) }
+        let url = dir.appendingPathComponent("speech-only.m4a")
+        try? FileManager.default.removeItem(at: url)
+        let settings: [String: Any] = [
+            AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: 16_000, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 48_000,
+        ]
+        do {
+            let file = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+            try file.write(from: buffer)
+        } catch {
+            Log.info("speech-only audio failed: \(error.localizedDescription)")
+            return nil
+        }
+        let cut = Double(samples.count - trimmed.samples.count) / 16_000
+        Log.info(String(format: "transcribing without %.0fs of silence", cut))
+        return (url, trimmed)
     }
 
     /// The words from when the report was last made, if they were timed word by word (better than

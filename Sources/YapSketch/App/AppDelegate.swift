@@ -67,6 +67,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         NotificationCenter.default.addObserver(forName: .yapSketchModelChanged, object: nil, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.parakeet.reload() }
+            LocalSpeech.shared.reload()
+        }
+        // A live model that takes custom words gets them when it loads: load it again once
+        // the typing has stopped.
+        var wordsChanged: DispatchWorkItem?
+        NotificationCenter.default.addObserver(forName: .yapSketchCustomWordsChanged, object: nil, queue: .main) { [weak self] _ in
+            wordsChanged?.cancel()
+            let w = DispatchWorkItem {
+                MainActor.assumeIsolated {
+                    if self?.parakeet.takesWords == true { self?.parakeet.reload() }
+                }
+            }
+            wordsChanged = w
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: w)
         }
         pill.onCopy = { [weak self] in self?.copyLastPrompt() }
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -92,9 +106,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         wireInput()
         wirePlayer()
-        NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main) { _ in
-            MainActor.assumeIsolated { PanelMotion.rejoinAllSpaces() }
-        }
         // Hold ⌃⌥ to draw; let go to click normally again.
         NSEvent.addGlobalMonitorForEvents(matching: .flagsChanged) { [weak self] e in self?.modifiersChanged(e.modifierFlags) }
         NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] e in
@@ -102,6 +113,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return e
         }
         parakeet.prepare()
+        LocalSpeech.shared.prepare()
+        QuietOutput.recover()
         MainActor.assumeIsolated {
             Onboarding.shared.onStartRecording = { [weak self] in self?.toggleRecording() }
             Onboarding.shared.showIfNeeded()
@@ -143,6 +156,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         for action in ShortcutAction.allCases {
             let id: UInt32?
             if action == .dictate, Shortcuts.get(action).isFn {
+                fnKey.onDown = { [weak self] in
+                    guard let self, self.state == .idle else { return }
+                    MainActor.assumeIsolated { self.dictation.prime() }
+                }
+                fnKey.onAbandon = { [weak self] in MainActor.assumeIsolated { self?.dictation.unprime() } }
                 fnKey.onPress = { [weak self] in
                     guard let self, self.state == .idle else { return }
                     MainActor.assumeIsolated { self.dictation.pressed() }
@@ -405,14 +423,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         console.start(preferring: tracker.current?.url)
 
-        var ticks = 0
         let t = Timer(timeInterval: 0.1, repeats: true) { [weak self] _ in
             guard let self, let s = self.session else { return }
             self.player.update(recording: true, elapsed: s.now())
             self.refreshStatus()
-            // In case a Space change went by unannounced: the toolbar must stay in sight.
-            ticks += 1
-            if ticks % 10 == 0 { MainActor.assumeIsolated { PanelMotion.rejoinAllSpaces() } }
         }
         RunLoop.main.add(t, forMode: .common)
         clockTimer = t
@@ -536,11 +550,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             (try? String(contentsOf: folder.appendingPathComponent("PROMPT.md"), encoding: .utf8))
             ?? "Run `yapsketch show \(folder.lastPathComponent)` to see my screen recording, then do what I ask in it."
         if pasteWhenDone, let prompt = lastPrompt {
-            if await Paster.deliver(prompt, mode: copyWhenDone ? .pasteAndKeep : .paste, submit: false) {
-                pill.done("Pasted into \(NSWorkspace.shared.frontmostApplication?.localizedName ?? "the app in front")" + note)
-            } else {
-                pill.notice("Copied to clipboard" + note)
-            }
+            Paster.deliver(prompt, mode: .paste)
+            pill.notice("Copied to clipboard" + note)
         } else {
             if copyWhenDone { copyLastPrompt() }
             // Copy only when it isn't on the clipboard already.

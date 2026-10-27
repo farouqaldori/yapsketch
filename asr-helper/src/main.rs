@@ -4,21 +4,31 @@
 //!
 //!     yapsketch-asr <streaming-model.gguf>             live mode
 //!     yapsketch-asr --offline <model.gguf>             whole-recording mode
+//!     yapsketch-asr --serve <model.gguf>               whole recordings, one after another
 //!
-//! stdin:  raw 16 kHz mono f32 little-endian PCM. EOF ends the session.
-//! stdout: {"type":"ready"}
-//!         {"type":"partial","text":"…"}                       caption text (committed + tentative)
-//!         {"type":"segment","text":"…","start_ms":0,"end_ms":0}  a finished sentence
-//!         {"type":"error","message":"…"}
+//! Live mode
+//!   stdin:  raw 16 kHz mono f32 little-endian PCM. EOF ends the session.
+//!   stdout: {"type":"ready","vocabulary":true|false}
+//!           {"type":"partial","text":"…"}                       caption text (committed + tentative)
+//!           {"type":"segment","text":"…","start_ms":0,"end_ms":0}  a finished sentence
+//!           {"type":"error","message":"…"}
 //!
 //! Offline mode reads all of stdin, then prints one line:
-//!         {"type":"words","words":[{"t0_ms":0,"t1_ms":0,"text":"…"}]}
+//!           {"type":"words","words":[{"t0_ms":0,"t1_ms":0,"text":"…"}]}
+//!
+//! Serve mode keeps the model loaded. It prints {"type":"ready","vocabulary":true|false}, then
+//! answers each request with one "words" line. A request is a JSON line,
+//! {"samples":N,"vocabulary":["…"]}, followed by N samples of PCM. EOF ends it.
+//!
+//! Custom words (names and terms to spell right) reach models that take them: from
+//! YAPSKETCH_ASR_VOCABULARY, one per line, in live and offline mode.
 
-use std::io::{self, BufWriter, Read, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 
 use serde_json::json;
 use transcribe_cpp::{
-    CommitPolicy, Model, ParakeetBufferedStreamOptions, RunOptions, StreamExtension, StreamOptions,
+    CommitPolicy, Feature, Model, ParakeetBufferedStreamOptions, RunOptions, Session,
+    StreamExtension, StreamOptions,
 };
 
 const CHUNK_SAMPLES: usize = 1600; // 100 ms at 16 kHz
@@ -41,6 +51,34 @@ fn last_sentence_end(s: &str) -> Option<usize> {
 /// Longest piece handed to the model in one run (cut at the quietest point near the boundary).
 const OFFLINE_WINDOW_MS: i64 = 120_000;
 
+/// Custom words from the environment, one per line.
+fn env_vocabulary() -> Vec<String> {
+    std::env::var("YAPSKETCH_ASR_VOCABULARY")
+        .map(|v| {
+            v.lines()
+                .map(|l| l.trim().to_string())
+                .filter(|l| !l.is_empty())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Run options carrying the custom words, when the model takes them.
+fn run_options(model: &Model, vocabulary: Vec<String>) -> RunOptions {
+    let mut run = RunOptions::default();
+    if model.supports(Feature::Vocabulary) {
+        run.vocabulary = vocabulary;
+    }
+    run
+}
+
+fn samples(bytes: &[u8]) -> Vec<f32> {
+    bytes
+        .chunks_exact(4)
+        .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+        .collect()
+}
+
 fn offline(model_path: &str, out: &mut impl Write) -> i32 {
     let mut bytes = Vec::new();
     if io::stdin().lock().read_to_end(&mut bytes).is_err() {
@@ -50,12 +88,9 @@ fn offline(model_path: &str, out: &mut impl Write) -> i32 {
         );
         return 1;
     }
-    let pcm: Vec<f32> = bytes
-        .chunks_exact(4)
-        .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
-        .collect();
-    let mut session = match Model::load(model_path).and_then(|m| m.session()) {
-        Ok(s) => s,
+    let pcm = samples(&bytes);
+    let model = match Model::load(model_path) {
+        Ok(m) => m,
         Err(e) => {
             emit(
                 out,
@@ -64,6 +99,85 @@ fn offline(model_path: &str, out: &mut impl Write) -> i32 {
             return 1;
         }
     };
+    let mut session = match model.session() {
+        Ok(s) => s,
+        Err(e) => {
+            emit(
+                out,
+                json!({"type": "error", "message": format!("session failed: {e}")}),
+            );
+            return 1;
+        }
+    };
+    let run = run_options(&model, env_vocabulary());
+    let words = transcribe(&mut session, &pcm, &run, out);
+    emit(out, json!({"type": "words", "words": words}));
+    0
+}
+
+fn serve(model_path: &str, out: &mut impl Write) -> i32 {
+    let model = match Model::load(model_path) {
+        Ok(m) => m,
+        Err(e) => {
+            emit(
+                out,
+                json!({"type": "error", "message": format!("load failed: {e}")}),
+            );
+            return 1;
+        }
+    };
+    let mut session = match model.session() {
+        Ok(s) => s,
+        Err(e) => {
+            emit(
+                out,
+                json!({"type": "error", "message": format!("session failed: {e}")}),
+            );
+            return 1;
+        }
+    };
+    emit(
+        out,
+        json!({"type": "ready", "vocabulary": model.supports(Feature::Vocabulary)}),
+    );
+    let mut input = BufReader::new(io::stdin().lock());
+    let mut line = Vec::new();
+    loop {
+        line.clear();
+        match input.read_until(b'\n', &mut line) {
+            Ok(0) | Err(_) => return 0,
+            Ok(_) => {}
+        }
+        let Ok(request) = serde_json::from_slice::<serde_json::Value>(&line) else {
+            emit(out, json!({"type": "error", "message": "bad request"}));
+            return 1;
+        };
+        let count = request["samples"].as_u64().unwrap_or(0) as usize;
+        let mut bytes = vec![0u8; count * 4];
+        if input.read_exact(&mut bytes).is_err() {
+            return 0;
+        }
+        let vocabulary = request["vocabulary"]
+            .as_array()
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default();
+        let run = run_options(&model, vocabulary);
+        let words = transcribe(&mut session, &samples(&bytes), &run, out);
+        emit(out, json!({"type": "words", "words": words}));
+    }
+}
+
+/// Words with their times, the audio run in windows the model can take.
+fn transcribe(
+    session: &mut Session,
+    pcm: &[f32],
+    run: &RunOptions,
+    out: &mut impl Write,
+) -> Vec<serde_json::Value> {
     let limit_ms = session
         .limits()
         .map(|l| l.effective_max_audio_ms)
@@ -75,16 +189,15 @@ fn offline(model_path: &str, out: &mut impl Write) -> i32 {
     };
     let window = (window_ms as usize) * 16;
 
-    let run = RunOptions::default();
     let mut words = Vec::new();
     let mut start = 0usize;
     while start < pcm.len() {
         let end = if pcm.len() - start <= window {
             pcm.len()
         } else {
-            quietest_cut(&pcm, start + window - 3 * 16_000, start + window)
+            quietest_cut(pcm, start + window - 3 * 16_000, start + window)
         };
-        match session.run(&pcm[start..end], &run) {
+        match session.run(&pcm[start..end], run) {
             Ok(t) => {
                 let offset = (start / 16) as i64;
                 for w in t.words {
@@ -101,8 +214,7 @@ fn offline(model_path: &str, out: &mut impl Write) -> i32 {
         }
         start = end;
     }
-    emit(out, json!({"type": "words", "words": words}));
-    0
+    words
 }
 
 /// Sample index of the quietest 20 ms frame in `[from, to)`.
@@ -163,6 +275,16 @@ fn run(out: &mut impl Write) -> i32 {
         };
         return offline(path, out);
     }
+    if args.first().map(String::as_str) == Some("--serve") {
+        let Some(path) = args.get(1) else {
+            emit(
+                out,
+                json!({"type": "error", "message": "usage: yapsketch-asr --serve <model.gguf>"}),
+            );
+            return 2;
+        };
+        return serve(path, out);
+    }
     let Some(model_path) = args.first().cloned() else {
         emit(
             out,
@@ -200,9 +322,12 @@ fn run(out: &mut impl Write) -> i32 {
             return 1;
         }
     };
-    emit(out, json!({"type": "ready"}));
+    emit(
+        out,
+        json!({"type": "ready", "vocabulary": model.supports(Feature::Vocabulary)}),
+    );
 
-    let run = RunOptions::default();
+    let run = run_options(&model, env_vocabulary());
     let mut opts = StreamOptions {
         commit_policy: CommitPolicy::Auto,
         family: stream_extension(),

@@ -3,13 +3,9 @@ import Carbon
 import SwiftUI
 
 struct GeneralPane: View {
-    @AppStorage("copyWhenDone") private var copyWhenDone = true
-    @AppStorage("pasteWhenDone") private var pasteWhenDone = false
     @AppStorage("soundPack") private var soundPack = Sounds.Pack.click.rawValue
     @State private var updatesByItself = Updates.shared.updatesByItself
     @State private var opensAtLogin = LoginItem.isOn
-    /// What macOS does with 🌐 too, when dictation is on fn.
-    @State private var globeKey: String?
 
     var body: some View {
         BrandPage("General") {
@@ -22,12 +18,11 @@ struct GeneralPane: View {
                     ) {
                         ShortcutRecorder(action: action)
                     }
-                    if action == .dictate, let globeKey {
-                        BrandRow("fn also \(globeKey)", subtitle: "To stop that, set “Press 🌐 key to” to Do Nothing in Keyboard settings.", subtitleColor: .coralText) {
-                            Button("Keyboard Settings…") { FnKey.openKeyboardSettings() }.buttonStyle(.paper)
-                        }
-                    }
+                    if action == .dictate { DictationShortcutWarning() }
                 }
+            }
+            BrandSection("Microphone") {
+                MicrophoneRow()
             }
             BrandSection("Startup") {
                 BrandRow(
@@ -36,10 +31,6 @@ struct GeneralPane: View {
                     isOn: $opensAtLogin
                 )
                 .onChange(of: opensAtLogin) { LoginItem.set(opensAtLogin) }
-            }
-            BrandSection("When a recording is done") {
-                BrandRow("Copy the instructions for your agent", isOn: $copyWhenDone)
-                BrandRow("Paste them into the app in front", isOn: $pasteWhenDone)
             }
             BrandSection("Sounds") {
                 BrandRow("Sound pack") {
@@ -69,17 +60,48 @@ struct GeneralPane: View {
                 Text(Self.version).font(.ui(12)).foregroundStyle(.faint).padding(.leading, 2)
             }
         }
-        .onAppear(perform: refreshGlobeKey)
-        .onReceive(NotificationCenter.default.publisher(for: .yapSketchShortcutsChanged)) { _ in refreshGlobeKey() }
-        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in refreshGlobeKey() }
     }
 
     private static var version: String {
         let v = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         return v.map { "YapSketch \($0)" } ?? "YapSketch, development build"
     }
+}
 
-    private func refreshGlobeKey() {
-        globeKey = Shortcuts.get(.dictate).isFn ? FnKey.systemAction() : nil
+/// Which microphone dictation and recordings listen with.
+private struct MicrophoneRow: View {
+    @AppStorage(Microphone.key) private var chosen = ""
+    @State private var devices = Microphone.all()
+    @State private var systemDefault = Microphone.defaultName()
+    @State private var watcher: AnyObject?
+
+    var body: some View {
+        BrandRow("Listen with", subtitle: missing.map { "Used for dictation and recordings. \($0) isn't connected, so it's the Mac's default for now." } ?? "Used for dictation and recordings") {
+            Picker("Listen with", selection: $chosen) {
+                Text(systemDefault.map { "Same as macOS (\($0))" } ?? "Same as macOS").tag("")
+                Divider()
+                ForEach(devices) { d in Text(d.name).tag(d.id) }
+                if let missing { Text(missing).tag(chosen) }
+            }
+            .labelsHidden().fixedSize()
+            .onChange(of: chosen) { refresh() }
+        }
+        .onAppear {
+            refresh()
+            watcher = Microphone.watch { DispatchQueue.main.async { refresh() } }
+        }
+        .onDisappear { watcher = nil }
+    }
+
+    /// The chosen microphone, by name, when it isn't connected.
+    private var missing: String? {
+        guard !chosen.isEmpty, !devices.contains(where: { $0.id == chosen }) else { return nil }
+        return UserDefaults.standard.string(forKey: Microphone.key + "Name") ?? "The chosen microphone"
+    }
+
+    private func refresh() {
+        devices = Microphone.all()
+        systemDefault = Microphone.defaultName()
+        if let d = devices.first(where: { $0.id == chosen }) { UserDefaults.standard.set(d.name, forKey: Microphone.key + "Name") }
     }
 }

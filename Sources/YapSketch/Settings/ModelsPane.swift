@@ -144,4 +144,5 @@ private struct LocalModelRow: View {
 
 extension Notification.Name {
     static let yapSketchModelChanged = Notification.Name("yapSketchModelChanged")
+    static let yapSketchCustomWordsChanged = Notification.Name("yapSketchCustomWordsChanged")
 }

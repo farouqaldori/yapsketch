@@ -11,22 +11,12 @@ final class MiniPlayer {
     var onRecordToggle: (() -> Void)?
     var onDiscard: (() -> Void)?
 
-    let panel: NSPanel
+    private(set) var panel: NSPanel
     private let view: PlayerView
 
     init() {
         view = PlayerView(frame: CGRect(x: 0, y: 0, width: PlayerView.width, height: PlayerView.height))
-        panel = NSPanel(contentRect: view.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = true
-        panel.level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)  // above the ink layer
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
-        panel.isMovableByWindowBackground = true
-        panel.hidesOnDeactivate = false
-        panel.becomesKeyOnlyIfNeeded = true
-        panel.sharingType = .none
-        panel.contentView = view
+        panel = Self.makePanel(for: view)
 
         view.onTool = { [weak self] in self?.onTool?($0) }
         view.onColor = { [weak self] in self?.onColor?($0) }
@@ -37,11 +27,29 @@ final class MiniPlayer {
         view.onDiscard = { [weak self] in self?.onDiscard?() }
     }
 
+    private static func makePanel(for view: NSView) -> NSPanel {
+        let panel = NSPanel(contentRect: view.frame, styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: false)
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 1)  // above the ink layer
+        panel.collectionBehavior = PanelMotion.collectionBehavior
+        panel.isMovableByWindowBackground = true
+        panel.hidesOnDeactivate = false
+        panel.becomesKeyOnlyIfNeeded = true
+        panel.sharingType = .none
+        panel.isReleasedWhenClosed = false
+        panel.contentView = view
+        return panel
+    }
+
     var windowID: CGWindowID { CGWindowID(panel.windowNumber) }
 
     func show(on screen: NSScreen) {
         let f = screen.visibleFrame
-        PanelMotion.show(panel, at: panel.isVisible ? nil : CGPoint(x: f.midX - PlayerView.width / 2, y: f.minY + 24), rise: 14)
+        // Preserve a dragged position only while it remains on the intended display.
+        let keepPosition = panel.isVisible && f.contains(panel.frame)
+        PanelMotion.show(panel, at: keepPosition ? nil : CGPoint(x: f.midX - panel.frame.width / 2, y: f.minY + 24), rise: 14)
     }
 
     func hide() {

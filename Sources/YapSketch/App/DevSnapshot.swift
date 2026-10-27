@@ -175,7 +175,7 @@ enum DevSnapshot {
         shoot(dictation.debugPanel, "dictation-listening")
         dictation.working()
         shoot(dictation.debugPanel, "dictation-working")
-        dictation.done("Pasted into Slack")
+        dictation.done("Copied")
         shoot(dictation.debugPanel, "dictation-done")
         print(dir.path)
     }

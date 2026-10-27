@@ -13,6 +13,8 @@ struct RecordingPane: View {
         used = bytes == 0 ? "No recordings yet" : ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file) + " used"
     }
 
+    @AppStorage("copyWhenDone") private var copyWhenDone = true
+    @AppStorage("pasteWhenDone") private var pasteWhenDone = false
     @AppStorage("recordWindow") private var recordWindow = false
     @AppStorage("systemAudio") private var systemAudio = false
     @AppStorage("logKeystrokes") private var logKeystrokes = true
@@ -36,6 +38,10 @@ struct RecordingPane: View {
                         .frame(width: 240)
                         .accessibilityLabel("Ink size")
                 }
+            }
+            BrandSection("When a recording is done") {
+                BrandRow("Copy the instructions for your agent", isOn: $copyWhenDone)
+                BrandRow("Paste them into the app in front", subtitle: "Also keeps the instructions on the clipboard", isOn: $pasteWhenDone)
             }
             BrandSection("Storage") {
                 BrandRow("Keep recordings", subtitle: used ?? " ") {

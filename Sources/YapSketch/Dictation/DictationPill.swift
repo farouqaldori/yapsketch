@@ -31,7 +31,7 @@ final class DictationPill {
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.level = .statusBar
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        panel.collectionBehavior = PanelMotion.collectionBehavior
         panel.isMovable = false
         panel.sharingType = .none
         panel.appearance = NSAppearance(named: .darkAqua)

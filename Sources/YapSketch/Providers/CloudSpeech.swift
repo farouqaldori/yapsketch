@@ -31,7 +31,8 @@ enum CloudSpeech {
         let started = CFAbsoluteTimeGetCurrent()
         let since = Date()
         let format = AudioFormat(audio)
-        let segments = await Deadline.run(deadline) { await provider.transcribe(bytes, format: format, model: model.model, key: key) }
+        let words = TextCleanup.customWords
+        let segments = await Deadline.run(deadline) { await provider.transcribe(bytes, format: format, model: model.model, key: key, words: words) }
         if segments == nil, ProviderHTTP.trouble(for: provider.id, since: since) == nil {
             Log.info("\(provider.id): no transcript within \(Int(deadline))s")
             ProviderHTTP.record(.offline, for: provider.id)
@@ -49,6 +50,52 @@ enum CloudSpeech {
         else { return }
         ModelStore.shared.selectedID = ModelStore.current()?.id ?? "parakeet-unified"
         NotificationCenter.default.post(name: .yapSketchModelChanged, object: nil)
+    }
+}
+
+/// Custom words sent along with the audio, so the model spells them right. A model that
+/// refuses them (400) is asked again without, and isn't sent them again.
+enum WordHints {
+    /// The words as a short prompt, the way speech models take one.
+    static func prompt(_ words: [String]) -> String? {
+        var kept: [String] = []
+        var length = 0
+        for w in words where length + w.count < 600 {
+            kept.append(w)
+            length += w.count + 2
+        }
+        return kept.isEmpty ? nil : kept.joined(separator: ", ") + "."
+    }
+
+    /// The answer, if it worked, and the HTTP status (0 when unreachable).
+    static func send(
+        _ provider: any Provider, model: String, url: URL, key: String, body: [String: Any], hints: [String: Any]
+    ) async -> (obj: [String: Any]?, status: Int) {
+        let refused = "refusesWordHints.\(provider.id):\(model)"
+        let withHints = !hints.isEmpty && !UserDefaults.standard.bool(forKey: refused)
+        let first = await post(provider, url, key, withHints ? body.merging(hints) { $1 } : body)
+        guard withHints, first.status == 400 else { return first }
+        let second = await post(provider, url, key, body)
+        if second.obj != nil {
+            UserDefaults.standard.set(true, forKey: refused)
+            Log.info("\(provider.id): \(model) doesn't take custom words")
+        }
+        return second
+    }
+
+    private static func post(_ provider: any Provider, _ url: URL, _ key: String, _ body: [String: Any]) async -> (
+        obj: [String: Any]?, status: Int
+    ) {
+        guard let json = try? JSONSerialization.data(withJSONObject: body),
+            let (data, status) = await ProviderHTTP.send(provider, ProviderHTTP.request(provider, url, key: key, timeout: 180), body: json)
+        else { return (nil, 0) }
+        guard status == 200, let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            Log.info("\(provider.id): transcription HTTP \(status): \(String(decoding: data.prefix(300), as: UTF8.self))")
+            if status == 200 { ProviderHTTP.record(.server(200), for: provider.id) }
+            return (nil, status)
+        }
+        Credentials.noteWorking(provider.id)
+        return (obj, status)
     }
 }
 

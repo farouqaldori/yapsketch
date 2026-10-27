@@ -296,6 +296,8 @@ private struct DictationDetail: View {
     @State private var copied = false
     @State private var sound: NSSound?
     @State private var retrying = false
+    /// The text being corrected, while it is.
+    @State private var draft: String?
 
     var body: some View {
         let e = entry
@@ -314,6 +316,11 @@ private struct DictationDetail: View {
                     .buttonStyle(.paper)
                     .help("Play the audio")
                     .accessibilityLabel(sound?.isPlaying == true ? "Stop" : "Play the audio")
+                    if draft == nil, !e.text.isEmpty {
+                        Button("Fix") { draft = e.text }
+                            .buttonStyle(.paper)
+                            .help("Edit the text saved in this history entry.")
+                    }
                     Button(copied ? "Copied" : "Copy") {
                         NSPasteboard.general.clearContents()
                         NSPasteboard.general.setString(e.text, forType: .string)
@@ -338,6 +345,20 @@ private struct DictationDetail: View {
                             .buttonStyle(.paper)
                         }
                     }
+                } else if let draft {
+                    VStack(alignment: .trailing, spacing: 10) {
+                        TextEditor(text: Binding(get: { draft }, set: { self.draft = $0 }))
+                            .font(.ui(15)).foregroundStyle(.ink).lineSpacing(6)
+                            .scrollContentBackground(.hidden)
+                            .padding(10)
+                            .frame(minHeight: 120)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(.card))
+                            .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.line))
+                        HStack(spacing: 8) {
+                            Button("Cancel") { self.draft = nil }.buttonStyle(.paper)
+                            Button("Save") { save(draft) }.buttonStyle(.ink).keyboardShortcut(.defaultAction)
+                        }
+                    }
                 } else {
                     Text(e.text).font(.ui(15)).foregroundStyle(.ink).lineSpacing(6).textSelection(.enabled)
                 }
@@ -354,6 +375,16 @@ private struct DictationDetail: View {
             sound?.stop()
             sound = nil
         }
+        .onChange(of: entry.id) {
+            draft = nil
+        }
+    }
+
+    private func save(_ text: String) {
+        let fixed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        draft = nil
+        guard !fixed.isEmpty, fixed != entry.text else { return }
+        DictationHistory.update(entry, text: fixed)
     }
 
     private func play(_ url: URL) {

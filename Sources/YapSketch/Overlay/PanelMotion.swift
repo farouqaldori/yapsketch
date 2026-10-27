@@ -4,6 +4,12 @@ import QuartzCore
 /// Show and hide animations for the floating panels, like macOS's own HUDs. Showing a panel
 /// that's on its way out brings it straight back. Main thread only.
 enum PanelMotion {
+    // All Spaces and all applications are separate policies. The latter keeps HUDs
+    // alongside other apps in full screen and Stage Manager.
+    static let collectionBehavior: NSWindow.CollectionBehavior = [
+        .canJoinAllSpaces, .canJoinAllApplications, .fullScreenAuxiliary, .stationary, .ignoresCycle,
+    ]
+
     static let easeOut = CAMediaTimingFunction(controlPoints: 0.2, 0.9, 0.25, 1)
     static let easeIn = CAMediaTimingFunction(controlPoints: 0.4, 0, 1, 1)
 
@@ -21,6 +27,7 @@ enum PanelMotion {
         let rest = origin ?? resting.removeValue(forKey: id) ?? panel.frame.origin
         if panel.isVisible, !wasLeaving {
             if origin != nil { panel.setFrameOrigin(rest) }
+            panel.orderFrontRegardless()
             return
         }
         if !panel.isVisible {
@@ -62,21 +69,6 @@ enum PanelMotion {
             panel.setFrameOrigin(rest)
             panel.alphaValue = 1
             done?()
-        }
-    }
-
-    /// Brings back shown panels stranded on one Space. The window server once forgot that
-    /// YapSketch's panels join every Space, leaving a recording's toolbar on a desktop no one
-    /// was looking at for hours. Setting the collection behavior again restores it; ordering
-    /// the panel in again doesn't.
-    static func rejoinAllSpaces() {
-        for window in NSApp.windows
-        where window.isVisible && window.collectionBehavior.contains(.canJoinAllSpaces) && !window.isOnActiveSpace {
-            let behavior = window.collectionBehavior
-            window.collectionBehavior = []
-            window.collectionBehavior = behavior
-            window.orderFrontRegardless()
-            Log.info("panel was stuck on another Space, brought back: \(type(of: window)) \(window.frame.size)")
         }
     }
 

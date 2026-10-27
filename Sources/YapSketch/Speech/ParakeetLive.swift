@@ -41,6 +41,8 @@ final class ParakeetLive: LiveTranscriber, @unchecked Sendable {
     /// Session time of the first audio sample sent; helper timestamps are relative to it.
     private var audioStart: Double?
     private var ready = false
+    /// The loaded model takes custom words (they're given to it when it loads).
+    private(set) var takesWords = false
     /// A recording is currently using the helper.
     private var active = false
     private var lastUsed = Date()
@@ -97,6 +99,7 @@ final class ParakeetLive: LiveTranscriber, @unchecked Sendable {
         // ggml's Metal residency sets come with a thread that wakes every 5 ms for as long as the
         // helper lives, and the helper idles for hours. Transcription is just as fast without them.
         env["GGML_METAL_NO_RESIDENCY"] = "1"
+        env["YAPSKETCH_ASR_VOCABULARY"] = TextCleanup.customWords.joined(separator: "\n")
         p.environment = env
         let inPipe = Pipe()
         let outPipe = Pipe()
@@ -287,6 +290,7 @@ final class ParakeetLive: LiveTranscriber, @unchecked Sendable {
         switch type {
         case "ready":
             ready = true
+            takesWords = obj["vocabulary"] as? Bool ?? false
             Log.info("live captions: model loaded")
         case "partial":
             if let text = obj["text"] as? String, !text.isEmpty { onPartial?(text) }

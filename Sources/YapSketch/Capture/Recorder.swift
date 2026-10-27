@@ -48,9 +48,7 @@ final class Recorder: NSObject, SCStreamOutput, SCStreamDelegate, SCRecordingOut
         config.capturesAudio = systemAudio
         config.excludesCurrentProcessAudio = true
         config.captureMicrophone = true
-        if let mic = AVCaptureDevice.default(for: .audio) {
-            config.microphoneCaptureDeviceID = mic.uniqueID
-        }
+        if let mic = Microphone.captureUID { config.microphoneCaptureDeviceID = mic }
 
         let stream = SCStream(filter: filter, configuration: config, delegate: self)
         // A screen output is required for SCK to deliver frames to the recording output

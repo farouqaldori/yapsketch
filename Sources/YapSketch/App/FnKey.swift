@@ -4,10 +4,14 @@ import Carbon
 /// Holding fn (🌐) on its own, which Carbon hotkeys can't register, via a listen-only event tap
 /// (Input Monitoring). fn with another key is left alone.
 final class FnKey {
+    /// fn went down on its own, so it may become a press: time to get ready.
+    var onDown: (() -> Void)?
     var onPress: (() -> Void)?
     var onRelease: (() -> Void)?
     /// Another key came while fn was held, after the press was passed on.
     var onCombo: (() -> Void)?
+    /// Another key came before the press was passed on: it was fn+key all along.
+    var onAbandon: (() -> Void)?
 
     /// fn is passed on once held this long, or let go sooner, with no other key: long enough to
     /// see fn+← coming, short enough not to lose the first word.
@@ -96,6 +100,7 @@ final class FnKey {
                 passedOn = false
                 combo = !event.flags.intersection(others).isEmpty
                 guard !combo else { return }
+                onDown?()
                 let w = DispatchWorkItem { [weak self] in self?.passOn() }
                 pending = w
                 DispatchQueue.main.asyncAfter(deadline: .now() + Self.settle, execute: w)
@@ -124,7 +129,7 @@ final class FnKey {
         combo = true
         pending?.cancel()
         pending = nil
-        if passedOn { onCombo?() }
+        if passedOn { onCombo?() } else { onAbandon?() }
     }
 }
 

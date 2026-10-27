@@ -12,16 +12,16 @@ protocol Provider: Sendable {
     var billing: Billing? { get }
     var headers: [String: String] { get }
 
-    var speech: [SpeechOffer] { get }
-    /// Use `ProviderHTTP` so problems are noted.
-    func transcribe(_ audio: Data, format: AudioFormat, model: String, key: String) async -> [TranscriptSegment]?
+    var speech: [ModelOffer] { get }
+    /// Use `ProviderHTTP` so problems are noted. `words`: names and terms to spell right.
+    func transcribe(_ audio: Data, format: AudioFormat, model: String, key: String, words: [String]) async -> [TranscriptSegment]?
 }
 
 extension Provider {
     var billing: Billing? { nil }
     var headers: [String: String] { [:] }
-    var speech: [SpeechOffer] { [] }
-    func transcribe(_ audio: Data, format: AudioFormat, model: String, key: String) async -> [TranscriptSegment]? { nil }
+    var speech: [ModelOffer] { [] }
+    func transcribe(_ audio: Data, format: AudioFormat, model: String, key: String, words: [String]) async -> [TranscriptSegment]? { nil }
 
     var key: String? { Credentials.key(for: id) }
     var isConnected: Bool { key != nil }
@@ -50,7 +50,7 @@ struct Billing: Sendable {
     let topUp: String
 }
 
-struct SpeechOffer: Sendable {
+struct ModelOffer: Sendable {
     let model: String
     let name: String
     let detail: String

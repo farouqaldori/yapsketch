@@ -98,6 +98,14 @@ enum TextCleanup {
         return out
     }
 
+    /// Loosely the same word, heard: what was said for a term someone then typed in its place.
+    static func soundsLike(_ heard: String, _ term: String) -> Bool {
+        let a = normalize(heard).replacingOccurrences(of: " ", with: "")
+        let b = normalize(term).replacingOccurrences(of: " ", with: "")
+        guard !a.isEmpty, !b.isEmpty, abs(a.count - b.count) <= max(3, b.count / 2) else { return false }
+        return Double(distance(a, b)) / Double(max(a.count, b.count)) <= 0.5 || soundex(a) == soundex(b)
+    }
+
     private static func normalize(_ s: String) -> String {
         s.lowercased().filter { $0.isLetter || $0.isNumber || $0 == " " }
     }

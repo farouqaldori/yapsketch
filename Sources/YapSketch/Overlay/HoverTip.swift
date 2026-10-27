@@ -19,7 +19,7 @@ final class HoverTip {
         panel.backgroundColor = .clear
         panel.hasShadow = true
         panel.level = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 2)
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        panel.collectionBehavior = PanelMotion.collectionBehavior
         panel.ignoresMouseEvents = true
         panel.sharingType = .none
         let box = NSView()
