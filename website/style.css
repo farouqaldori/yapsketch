@@ -1488,6 +1488,27 @@ footer nav a:not(.download):hover {
 footer .actions {
   margin: 8px 0 4px;
 }
+/* A 36px disc around the 15px icon: it fills in and lifts on hover like the Download button. The negative
+   margin keeps the footer's spacing as it was. */
+footer .x {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: -10.5px;
+  border-radius: 50%;
+  transition:
+    color 0.2s,
+    background 0.2s,
+    translate 0.25s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+footer .x:hover {
+  background: var(--line);
+  translate: 0 -2px;
+}
+footer .x:active {
+  translate: 0 1px;
+}
 footer .x svg {
   display: block;
   width: 15px;
