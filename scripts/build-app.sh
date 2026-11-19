@@ -32,6 +32,9 @@ cp -R Resources/Providers "$APP/Contents/Resources/Providers"
 cp -R Resources/Fonts "$APP/Contents/Resources/Fonts"
 cp Resources/Icon/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 cp Resources/Icon/icon-rounded.png "$APP/Contents/Resources/AppMark.png"
+install -d "$APP/Contents/Resources/SketchyBar"
+install -m 755 Resources/SketchyBar/yapsketch.sh "$APP/Contents/Resources/SketchyBar/yapsketch.sh"
+install -m 644 Resources/SketchyBar/status-mark.png "$APP/Contents/Resources/SketchyBar/status-mark.png"
 
 # Live-caption helper. Optional: without it YapSketch falls back to Apple's speech recognizer.
 if command -v cargo >/dev/null; then

@@ -26,8 +26,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var pointerTimer: Timer?
     private var recordingStartedAt: Date?
     private var stopNote: String?
+    private let recordingState = RecordingState()
     private var state: State = .idle {
         didSet {
+            if (state == .recording) != (oldValue == .recording) {
+                recordingState.publish(state == .recording)
+            }
             refreshStatus()
             syncPlayer()
         }
