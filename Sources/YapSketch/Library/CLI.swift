@@ -5,7 +5,7 @@ import Foundation
 /// The app's own executable answers these; `yapsketch` on the PATH is a small wrapper the
 /// app installs that runs it.
 enum CLI {
-    static let commands: Set<String> = ["latest", "list", "show", "brief", "path", "frames", "reprocess", "help", "--help", "-h"]
+    static let commands: Set<String> = ["latest", "list", "show", "brief", "path", "frames", "reprocess", "recording-state", "help", "--help", "-h"]
 
     static let usage = """
         yapsketch: YapSketch screen recordings: what the user said and did while showing their
@@ -23,6 +23,7 @@ enum CLI {
                                      a row with their times, in one picture, and prints its path
           yapsketch reprocess <recording>
                                      build a report again
+          yapsketch recording-state  prints recording or idle for the current screen capture
 
         Reports are Markdown: what was said and done, each line at its time (minutes:seconds).
         Image paths are absolute: open each image to see what the user showed. A picture's
@@ -63,6 +64,13 @@ enum CLI {
         case "reprocess":
             guard rest.count > 1, let dir = find(rest[1]) else { fail("Which recording? See `yapsketch list`.") }
             reprocess(dir)
+        case "recording-state":
+            let recording = RecordingState.isRecording
+            if json {
+                emit(["recording": recording])
+            } else {
+                print(recording ? "recording" : "idle")
+            }
         default:
             print(usage)
         }

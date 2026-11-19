@@ -4,22 +4,22 @@
 
 <p align="center"><img src=".github/assets/how.png" alt="Talk, draw, paste: record and talk, point at it, then paste." /></p>
 
-Stop typing paragraphs to explain one bug. Record your screen, say what's wrong and point at it. When you stop, what you said and did is on your clipboard, in order, each line at its time, with a picture wherever you drew or circled with the pointer:
+YapSketch is a macOS app for explaining something on your screen by talking and pointing. Walk through a bug, give design feedback, or show how a workflow should work. When you stop recording, YapSketch copies a timestamped timeline to your clipboard, with a screenshot wherever you drew or circled:
 
 ```
-Screen recording in Google Chrome — Vesper (vesper.studio), 00:16. What I said and did, with my screen wherever I drew or pointed:
+Screen recording in Google Chrome — Project dashboard, 00:16. What I said and did, with my screen wherever I drew or pointed:
 
-00:00.4  Okay so I want you to fix a few issues here on my website.
-00:04.6  This badge overlaps the number
+00:00.4  Here's how I want the project dashboard to work.
+00:04.6  This filter should apply to both charts.
 00:05.2  [drew → 1.jpg]
-00:06.8  the image here is broken
+00:06.8  Keep the selected date range when I switch tabs.
 00:07.3  [drew → 2.jpg]
 
 Pictures, numbered like the badge on each:
 ~/Movies/YapSketch/2026-10-20_15-07-41/shots/1.jpg
 ~/Movies/YapSketch/2026-10-20_15-07-41/shots/2.jpg
 
-To see my screen at any moment: `yapsketch frames k2vg 01:23.4`, or a stretch: `yapsketch frames k2vg 01:20-01:30`.
+To see my screen at any moment: `yapsketch frames k2vg 00:05.2`, or a stretch: `yapsketch frames k2vg 00:04-00:08`.
 ```
 
 Your agent works out what you meant. YapSketch just writes down what happened.
@@ -68,6 +68,16 @@ Speech is turned into text on your Mac by default. Prefer a cloud model? Connect
 - **Opper** or **OpenRouter** (sign in): cloud speech models.
 
 Recordings stay in `~/Movies/YapSketch`. Your voice only leaves your Mac if you pick a cloud speech model, and then only to the provider you picked. Pictures never do, unless you paste them somewhere.
+
+## SketchyBar
+
+Add this to `sketchybarrc`, adjust the app path if needed, and run `sketchybar --reload`.
+
+```sh
+"/Applications/YapSketch.app/Contents/Resources/SketchyBar/yapsketch.sh"
+```
+
+The dot is gray when idle and red while recording. Pass SketchyBar item properties to style it, such as `label.color` for idle and `label.highlight_color` for recording.
 
 ## Build
 
